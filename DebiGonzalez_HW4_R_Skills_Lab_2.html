@@ -1004,7 +1004,13 @@ the columns corresponding to #advisorSupport and academicMotivation.</p>
 ## 250              2                  0</code></pre>
 <p>#10. Use the cov() function to display a covariance matrix for the
 variables in question 9.</p>
-<pre class="r"><code>cov(labData$advisorSupport, labData$academicMotivation)</code></pre>
+<pre class="r"><code># Covariance matrix
+cov(labData[, c(&quot;advisorSupport&quot;, &quot;academicMotivation&quot;)])</code></pre>
+<pre><code>##                    advisorSupport academicMotivation
+## advisorSupport          2.4484498          0.6636145
+## academicMotivation      0.6636145          2.8469880</code></pre>
+<pre class="r"><code># Another way to get the covariance
+cov(labData$advisorSupport, labData$academicMotivation)</code></pre>
 <pre><code>## [1] 0.6636145</code></pre>
 <p>#11. Since every variable in labData is numeric (use str() again if
 you want to check this), #it is possible to use cor() to obtain the

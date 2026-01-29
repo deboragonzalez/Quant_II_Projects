@@ -120,6 +120,11 @@ labData[, c("advisorSupport", "academicMotivation")]
 	
 #10. Use the cov() function to display a covariance matrix for the variables in question 9.
 ```{r}
+
+# Covariance matrix
+cov(labData[, c("advisorSupport", "academicMotivation")])
+
+# Another way to get the covariance
 cov(labData$advisorSupport, labData$academicMotivation)
 ```
 

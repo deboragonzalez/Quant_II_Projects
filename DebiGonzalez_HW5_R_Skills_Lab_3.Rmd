@@ -1,0 +1,145 @@
+---
+title: "R Skills Lab 3: Simple Regression in R or SPSS"
+author: "Debi Gonzalez"
+date: "2026-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Loading the data
+hwData <- read.csv(file = "/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/academicMotivation.csv", header = T)
+```
+
+For this homework, you will analyze the academic motivation HW dataset, using either SPSS or R, providing your syntax (yes, even SPSS syntax! Always paste your syntax and save the syntax file) as a separate supplemental file.
+
+For more information on the variables in this dataset, see the accompanying description in the Word Doc in the same folder as this homework assignment and dataset.
+
+If using R, the following questions assume that you have read in your data using read.csv() and have named the data frame object hwData, using syntax like:
+
+file.choose() #find correct file path
+hwData <- read.csv("/your/file/path/academicMotivation.csv")
+
+	What are the means and sds of hrs and academicMotivaton? If using SPSS, compute these using descriptive statistics (e.g., descriptives). If using R, compute these either one by one or using apply() (your choice).
+
+```{r}
+# First, let's find the mean:
+apply(hwData[, c("hrs", "academicMotivation")], 2, mean, na.rm = TRUE)
+# the two tells R to operate by column
+
+# Now, in same manner, we calculate the standard deviation
+apply(hwData[, c("hrs", "academicMotivation")], 2, sd, na.rm = TRUE)
+
+
+```
+
+	Run a regression predicting academic motivation (y) from average hours worked during the week (x).  If using R, save the lm() run as an object called fit and use the summary function to display the results of this regression.
+
+```{r}
+fit <- lm(academicMotivation ~ hrs, data = hwData)
+summary(fit)
+
+```
+
+	In words, interpret the following:
+	The intercept, b_0=3.08, p < .001, which means that when hours worked = 0, predicted academic motivation is about 3.08.
+	The slope, b_1=−0.052, p < .001, which means that for each additional hour worked per week, academic motivation decreases by about 0.05 units, on average.
+	The R-squared value (at the bottom of the summary output, if using R) is .107, which means that hours worked explains ~10.7% of the variance in academic motivation in the sample.
+
+	Does hrs have a meaningful zero point? What is the range of hrs (hwData$hrs in R)? (hint:use the range() function in R, or an analyze  descriptives  options  range in SPSS).
+```{r}
+range(hwData$hrs)
+```
+
+Yes. Zero hours worked represents not working at all, so the zero point is meaningful (even though zero is not observed in this sample), minimum number of hours worked is 18.303.
+
+	Mean center hrs using R or SPSS. For SPSS use COMPUTE along with the mean (e.g., using aggregate, as shown in class). For R, use the scale() function with argument scale = FALSE to create a mean-centered version of hwData$hrs and assign this as an object called hrsC. If using R, Add this to the hwData data frame by running the following code:
+
+hwData$hrsC <- hrsC
+#examine what happened:
+head(hwData)
+
+```{r}
+
+# Mean centering hrs using the scale() function
+hrsC <- scale(hwData$hrs, center = TRUE, scale = FALSE)
+
+# Adding hrsC to hwData
+hwData$hrsC <- hrsC
+#examine what happened:
+head(hwData)
+
+# Note to self: Before centering, the intercept predicted academic motivation when hrs = 0, which, in this dataset, is outside the observed range. After centering, the intercept now predicts academic motivation when hrs = at its mean (50.72).
+```
+
+
+	Rerun the regression above using centered hrs (e.g., hrsC in R, created above) instead of raw score hrs. If using R, save the lm() run as an object called fit2 and use the summary function to display the results of this regression. What does the intercept mean now? Interpret the intercept in words.
+```{r}
+
+# Now we fit the model with centered hrs
+
+fit2 <- lm(academicMotivation ~ hrsC, data = hwData)
+summary(fit2)
+
+# After mean centering, hrsC = 0 corresponds to the average number of hours worked in the sample. So the intercept (0.42) is the predicted level of academic motivation for a student who works an average number of hours per week. Note it's a lot less than that of a theoretical student working 0 hours.
+
+```
+	
+
+	Now, create z-scores of both hrs and academicMotivation. If using SPSS, you can check ‘save standardized values as variables; under analyze  descriptives. If using R, you can use the scale() function with default settings (center = TRUE, scale = TRUE). If using R, append these z-scored variables to your data frame using syntax like:
+
+hwData$zhrs <- scale(hwData$hrs)
+hwData$zacademicMotivation <- scale(hwData$academicMotivation)
+```{r}
+
+# Creating the z-scores for both variables and appending to dataset
+hwData$zhrs <- scale(hwData$hrs)
+hwData$zacademicMotivation <- scale(hwData$academicMotivation)
+
+# Checking if it worked:
+mean(hwData$zhrs)
+sd(hwData$zhrs)
+
+mean(hwData$zacademicMotivation)
+sd(hwData$zacademicMotivation)
+
+# I would expect to have mean 0 and SD 1 for z-scored variables.
+
+```
+
+
+	Run the regression of z-scored hours predicting z-scored academic motivation using the software package of your choice (e.g., in R save this as fit3 and using summary(fit3) to see the results). Interpret the regression slope in words. If using SPSS,  how does this slope match up to the standardized Beta for hrs in your first analysis above?
+```{r}
+
+# The standarized model:
+fit3 <- lm(zacademicMotivation ~ zhrs, data = hwData)
+summary(fit3)
+
+# This standardized slope (-0.327) is exactly the Beta we would see in SPSS if we requested “standardized coefficients” for the first regression using uncentered variables. Standardizing both variables gives us a slope that’s directly comparable across predictors, unlike raw units (hours vs motivation points).
+
+```
+For every 1 standard deviation increase in hours worked, academic motivation decreases by approximately 0.33 standard deviations, on average.
+
+	Plot the relationship between hrs and academicMotivation, along with the predicted regression line. In R, you can do this by using the plot() function and superimposing a regression line using the abline() function in conjunction with the fit object (e.g., from fit, not fit2 or fit3, if plotting raw score hrs against raw score academicMotivation). In SPSS, you can do this using Graphs  Regression Variable Plots  Options  Scatterplot Fit Line  Linear.
+	
+```{r}
+
+# Creating a scatterplot of hrs vs academicMotivation
+plot(hwData$hrs, hwData$academicMotivation,
+     main = "Academic Motivation vs Hours Worked",
+     xlab = "Hours Worked per Week",
+     ylab = "Academic Motivation",
+     pch = 19,      # solid circles
+     col = "royalblue")  # color of points
+
+# Adding the regression line from the 'fit' model
+abline(fit, col = "red", lwd = 3)
+
+
+```
+	
+
+	Note that this DV is an ordinal, Likert-type scale that is not truly continuous. Does this scatterplot look like the ones from class (for Week 6, Assumptions)? Do we think the assumptions of regression are really met here? (This is a stretch question/critical thinking question, so think about it and do your best) ...
+
+This scatterplot shows a negative linear trend, but the DV is ordinal, creating horizontal bands of points instead of the typical cloud of data points (like we saw in class). While the linearity assumption is roughly met (there is a somewhat downward trend), other assumptions (normality of residuals - DV is ordinal with few discrete levels, homoscedasticity - the spread of points seems to vary/differ, true continuity of the DV) are quite likely violated. Linear regression may still provide a reasonable approximation, but results should be interpreted with caution.
