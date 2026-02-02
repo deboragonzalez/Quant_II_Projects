@@ -52,7 +52,7 @@ summary(fit)
 range(hwData$hrs)
 ```
 
-Yes. Zero hours worked represents not working at all, so the zero point is meaningful (even though zero is not observed in this sample), minimum number of hours worked is 18.303.
+Yes. Zero hours worked represents not working at all, so the zero point is meaningful (even though zero is not observed in this sample), minimum number of hours worked is 18.303. Because 0 hours is outside the observed range (18–83), the intercept is an extrapolation.
 
 	Mean center hrs using R or SPSS. For SPSS use COMPUTE along with the mean (e.g., using aggregate, as shown in class). For R, use the scale() function with argument scale = FALSE to create a mean-centered version of hwData$hrs and assign this as an object called hrsC. If using R, Add this to the hwData data frame by running the following code:
 
