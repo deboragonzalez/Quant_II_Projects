@@ -1,0 +1,179 @@
+---
+title: "Homework Multiple Regression with Two Predictors"
+author: "Debi Gonzalez"
+date: "2026-02-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+For this homework, you will analyze the academic motivation HW dataset, using either SPSS or R, providing your syntax (yes, even SPSS syntax!) as a separate supplemental file.
+
+For more information on the variables in this dataset, see the accompanying description in the Word Doc in the same folder as this homework assignment and dataset.
+
+	1. Run a regression predicting academic motivation (y) from average hours worked during the week (x1) and advisor supportiveness (x2). Interpret what both slopes mean in this two-predictor model.
+
+```{r}
+# Loading the dataset
+am_data <- read.csv("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/HW 6 Multiple Regression with Two Predictors in R/academicMotivation.csv")
+
+# Building the regression model
+model <- lm(academicMotivation ~ hrs + advisorSupport, data = am_data)
+summary(model)
+
+# Where y = academicMotivation, X₁ (hrs) = average hours worked during the week, X₂ (advisorSupport) = perceived advisor supportiveness
+```
+Slope interpretation:
+
+For every additional 1-hour worked per week, academic motivation is expected to decrease by ~0.066 points, holding advisor support (x2) constant.
+
+For every one-unit increase in advisor support, academic motivation is expected to increase by 0.378 points, holding hours worked constant.
+
+	2. What does the intercept mean in the model above?
+
+The intercept (3.65) represents the predicted academic motivation for a student who works 0 hours per week and reports 0 advisor support. Its practical meaning depends on whether those values are realistic within the scale. In this case, they could be but it mostly depends on what rating scales were used for advisor support and whether 0 hours worked is a real possibility.
+
+
+	3. Advisor supportiveness ranges from –3 to +3 with 0 as its midpoint, presumably indicating an advisor who is ‘neither supportive nor unsupportive.’ Hours worked per week, on the other hand, ranges from approximately 18 hours to 83 hours, with no zero value in the range of the data. Mean center hrs in the dataset, then rerun the regression model above using centered hours in place of uncentered hours. Interpret the intercept in words in this model.
+
+```{r}
+
+# centering the hrs variable
+am_data$hrs_c <- am_data$hrs - mean(am_data$hrs)
+
+# re-creating the model
+model_centered <- lm(academicMotivation ~ hrs_c + advisorSupport, 
+                     data = am_data)
+
+summary(model_centered)
+```
+
+Now the intercept represents the predicted academic motivation for a student who works an average number of hours per week and whose advisor support score is 0 (meaning neither supportive nor unsupportive).Because zero hours worked is not observed in the original data, centering makes the intercept more meaningful and interpretable.
+
+	4. Obtain standardized regression coefficients from this two predictor model using any method of your choosing (e.g., interpreting the betas in the SPSS output, using the beta() function in R, running a model with all variables z-scored). Interpret these standardized regression coefficients.
+
+
+```{r}
+# creating z-score variables
+am_data$z_motivation <- scale(am_data$academicMotivation)
+am_data$z_hrs <- scale(am_data$hrs)
+am_data$z_support <- scale(am_data$advisorSupport)
+
+# Runnning regression with standardized variables
+model_z <- lm(z_motivation ~ z_hrs + z_support, data = am_data)
+summary(model_z)
+
+# Note to self: The coefficients for z_hrs and z_support are the standardized betas (β), which tell us how many standard deviations the outcome changes for a one standard deviation increase in the predictor, holding other predictors constant.
+
+```
+Intercept: The intercept is essentially 0 because all variables are standardized.
+
+Slopes interpretations: A one standard deviation increase in hours worked per week is associated with a 0.412 standard deviation decrease in academic motivation, controlling for advisor support. In addition, a one standard deviation increase in advisor support is associated with a 0.351 standard deviation increase in academic motivation, controlling for hours worked.
+
+	5. In the context of this two-predictor model, y ̂=b_0+b_1 hrs+b_2 advisorSupport. Compute the following ‘by hand’ (e.g., in R, or using a calculator on your phone or laptop, etc.) using the output from the first model you ran:
+
+	a. What is the predicted y ̂ value for a student who works 40 hours per week and has a moderately unsupportive advisor (advisorSupport = -2)?
+
+```{r}
+# Using the original model (not standardized)
+
+# My equation: y_hat = 3.648257 − 0.065978(hrs) + 0.378399(advisorSupport)
+
+# hrs = 40
+# advisorSupport = −2
+
+#Plug in the numbers: y_hat = 3.648257 - 0.065978(40) + 0.378399(-2)
+
+# Hours
+0.065978*40
+
+# Support
+0.378399*-2
+
+# calculating y_hat
+y_hat <- 3.648257-2.63912-0.756798
+y_hat
+
+# Based on the model, the predicted academic motivation score for a student who works 40 hours per week, and has a moderately unsupportive advisor (−2) is approximately 0.25.
+```
+Based on the model, the predicted academic motivation score for a student who works 40 hours per week, and has a moderately unsupportive advisor (−2) is approximately 0.25.
+
+	b. What is the predicted y ̂ value for a student who works 40 hours per week and has a moderately supportive advisor (advisorSupport = +2)?
+
+```{r}
+
+# My equation: y_hat = 3.648257 − 0.065978(hrs) + 0.378399(advisorSupport)
+
+# hrs = 40
+# advisorSupport = +2
+
+#Plug in the numbers: y_hat = 3.648257 - 0.065978(40) + 0.378399(2)
+
+# Hours
+0.065978*40
+
+# Support
+0.378399*2
+
+# calculating y_hat
+y_hatb <- 3.648257-2.63912+0.756798
+y_hatb
+
+# Based on the calculation using the model, the predicted academic motivation score for a student who works 40 hours per week, and has a moderately supportive advisor (+2) is approximately 1.77.
+```
+Based on the calculation using the model, the predicted academic motivation score for a student who works 40 hours per week, and has a moderately supportive advisor (+2) is approximately 1.77.
+
+	c. What is the predicted y ̂ value for a student who works 60 hours per week and has a moderately unsupportive advisor (advisorSupport = -2)?
+
+```{r}
+# My equation: y_hat = 3.648257 − 0.065978(hrs) + 0.378399(advisorSupport)
+
+# hrs = 60
+# advisorSupport = -2
+
+#Plug in the numbers: y_hat = 3.648257 - 0.065978(60) + 0.378399(-2)
+
+# Hours
+0.065978*60
+
+# Support
+0.378399*-2
+
+# calculating y_hat
+y_hatc <- 3.648257-3.95868-0.756798
+y_hatc
+
+# Based on the calculation using the model, the predicted academic motivation score for a student who works 60 hours per week, and has a moderately unsupportive advisor (-2) is approximately -1.07.
+```
+Based on the calculation using the model, the predicted academic motivation score for a student who works 60 hours per week, and has a moderately unsupportive advisor (-2) is approximately -1.07.
+
+	d. What is the predicted y ̂ value for a student who works 20 hours per week and has a moderately supportive advisor (advisorSupport = 2)?
+
+```{r}
+# My equation: y_hat = 3.648257 − 0.065978(hrs) + 0.378399(advisorSupport)
+
+# hrs = 20
+# advisorSupport = -2
+
+#Plug in the numbers: y_hat = 3.648257 - 0.065978(20) + 0.378399(2)
+
+# Hours
+0.065978*20
+
+# Support
+0.378399*2
+
+# calculating y_hat
+y_hatd <- 3.648257-1.31956+0.756798
+y_hatd
+
+# Based on the calculation using the model, the predicted academic motivation score for a student who works 20 hours per week, and has a moderately supportive advisor (2) is approximately 3.09.
+```
+
+Based on the calculation using the model, the predicted academic motivation score for a student who works 20 hours per week, and has a moderately supportive advisor (2) is approximately 3.09.
+
+	6. In your own words, using the variables in this example dataset if it is helpful, explain the two ways we learned in class to interpret how the partial regression coefficients are statistically controlling for the other predictor(s).
+
+According to our lecture, partial regression coefficients statistically control for other predictors in two equivalent ways. First, they can be interpreted as comparing individuals who are equal on the other predictor(s), or holding the other predictors constant. For example, the slope for hours worked represents the effect of hours on academic motivation among students with the same level of advisor support. Second, they can be understood through residualization (or partialing out overlapping variance), meaning that the coefficient reflects the relationship between the part of hours worked that is independent of advisor support and the part of academic motivation that is independent of advisor support. Both interpretations describe how multiple regression isolates the unique contribution of each predictor.

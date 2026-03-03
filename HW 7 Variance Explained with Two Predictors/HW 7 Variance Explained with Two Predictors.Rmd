@@ -1,0 +1,52 @@
+---
+title: "HW 7 Variance Explained with Two Predictors"
+author: "Debi Gonzalez"
+date: "2026-02-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Loading the dataset
+am_data <- read.csv("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/HW 6 Multiple Regression with Two Predictors in R/academicMotivation.csv")
+```
+
+For more information on the variables in this dataset, see the accompanying description in the Word Doc in the same folder as this homework assignment and dataset.
+
+1.	Run a regression predicting academic motivation (y) from average hours worked during the week (x1) and advisor supportiveness (x2). Interpret the model R-squared (or adjusted R-squared–your choice) and F test from this model in words.
+
+```{r}
+model <- lm(academicMotivation ~ hrs + advisorSupport, data = am_data)
+summary(model)
+```
+The model had a Multiple R-squared of 0.2228 and an Adjusted R-squared of 0.2165. Approximately 22.3% of the variance in academic motivation is explained jointly by average hours worked per week and advisor supportiveness. After adjusting for the number of predictors in the model, about 21.7% of the variance in academic motivation is explained.
+
+The overall regression model was statistically significant with F(2, 247) = 35.40, p < .001. The F-test indicates that, taken together, hours worked and advisor supportiveness significantly predict academic motivation.
+
+2.	Is this a small, moderate, or large R-squared effect size by Cohen’s (1988) rules of thumb?
+
+Cohen (1988) guidelines for R² effect sizes in multiple regression are Small ≈ 0.02, Medium ≈ 0.13, and Large ≈ 0.26. Given our model's R² effect of 0.22, this would be a moderate-to-large effect size according to Cohen’s (1988) guidelines.
+
+3.	How much variance does advisor supportiveness (x2) uniquely explain in academic motivation (y), above and beyond that explained by average hours worked during the week (x1)? Calculate ΔR^2 due to advisor supportiveness (x2) using the methods shown in class. Interpret ΔR^2 and its associated F change significance test in words.
+
+ΔR^2=(t^2 (1-R_full^2))/(df_residual )
+
+•  t=6.070(for advisorSupport)
+•  df_residual=247
+•  R_full^2=.2228
+
+```{r}
+6.070^2
+
+(36.8449*(1-.2228))/247
+```
+ΔR^2≈.116, which means that advisor supportiveness uniquely explains about 11.6% of the variance in academic motivation, above and beyond hours worked.
+
+F_change=t^2=36.85 --> When adding only one predictor, the F-test for change in R² is mathematically identical to squaring that predictor’s t-value. Adding advisor supportiveness significantly improves prediction of academic motivation beyond hours worked alone, F(1, 247) = 36.85, p < .001.
+
+
+
+4.	Is this a small, moderate, or large R-squared effect size by Cohen’s (1988) rules of thumb?
+
+At 0.116, this would be a small-to-moderate effect size according Cohen's rules.
