@@ -30,7 +30,7 @@ Cohen (1988) guidelines for R² effect sizes in multiple regression are Small �
 
 3.	How much variance does advisor supportiveness (x2) uniquely explain in academic motivation (y), above and beyond that explained by average hours worked during the week (x1)? Calculate ΔR^2 due to advisor supportiveness (x2) using the methods shown in class. Interpret ΔR^2 and its associated F change significance test in words.
 
-ΔR^2=(t^2 (1-R_full^2))/(df_residual )
+ΔR^2=( t^2 (1-R_full^2))/(df_residual)
 
 •  t=6.070(for advisorSupport)
 •  df_residual=247
