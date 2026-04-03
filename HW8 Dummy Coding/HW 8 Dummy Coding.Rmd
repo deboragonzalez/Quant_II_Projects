@@ -1,0 +1,76 @@
+---
+title: "HW8 Dummy Coding"
+author: "Debi Gonzalez"
+date: "2026-03-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Homework Adding Nominal Groups to Regression using Dummy Coding
+
+For more information on the variables in this dataset, see the accompanying description in the Word Doc in the same folder as this homework assignment and dataset.
+
+Note that we’ve already shown ourselves the equivalence of regression with dummies and t-tests, ANOVA, and ANCOVA. As a result, we will not replicate those analyses here. Instead, we will focus on interpreting the regression models, one at a time. First, we will run a two-group regression using one dummy coded variable. We will then run a three group regression captured by two dummy-coded variables. Finally, we will add a covariate (depression) to the model and interpret our output.
+
+Have fun …
+1.	Begin by creating two dummy coded variables corresponding to the two treatment conditions: the first variable should code Mindfulness = 1, else = 0. The second variable (for motivational interviewing) should code MI = 1, else = 0. To accomplish this, use e.g., ifelse() in R or ‘recode into different variables’ under the ‘data’ dropdown in SPSS.
+
+```{r}
+# Adding the data in
+dummy_data <- read.csv("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/HW8 Dummy Coding/mindfulnessAlc.csv")
+
+# Creating the Mindfulness Variable
+dummy_data$Mindfulness <- ifelse(dummy_data$Treatment == "Mindfulness", 1, 0)
+
+# Creating the MI variable
+dummy_data$MI <- ifelse(dummy_data$Treatment == "Motivational Interviewing", 1, 0)
+
+
+# Checking it worked
+table(dummy_data$Treatment, dummy_data$Mindfulness)
+table(dummy_data$Treatment, dummy_data$MI)
+
+```
+
+
+2.	Begin by subsetting the datafile to include only individuals in the Mindfulness and BAU control conditions (that is, excluding MI = motivational interviewing treatment participants at first). To accomplish this, use either ‘select cases’ in SPSS or subsetting syntax in R similar to that from the in class R file.
+
+```{r}
+
+# Subsetting data to NOT include anyone in the MI condition
+subset_data <- subset(dummy_data, Treatment != "Motivational Interviewing")
+```
+
+
+3.	Using this subsetted data, run an initial regression predicting cravings from the mindfulness dummy variable. Interpret (a) the model F statistic, (b) the intercept, and (c) the slope of the mindfulness dummy variable.
+
+```{r}
+# Model predicting cravigns from the mindfulness dummy variable
+
+model1 <- lm(Cravings ~ Mindfulness, data = subset_data)
+summary(model1)
+```
+The overall regression model was significant, F(1, 198) = 838.10, p < 0.001, indicating that cravings differed significantly between the Mindfulness and BAU groups. The intercept represents the mean cravings score for the BAU group. Participants in the BAU condition had an average cravings score of 23.89. The slope for Mindfulness indicates that participants in the Mindfulness condition had cravings scores that were 15.88 points lower, on average, than those in the BAU group, and this difference was statistically significant (p < .001).
+
+4.	Now, un-subset the data (revert back to the full data set by unselecting cases or using the full data frame in R, as in the in-class code). Run another regression predicting alcohol cravings from both the Mindfulness and MI (motivational interviewing) dummy variables you created. Once again, using what you know about the equivalence of this model to an ANOVA, in your own words, interpret (a) the model F statistic, (b) the intercept, (c) the slope of the mindfulness dummy variable, and (d) the slope of the MI dummy variable.
+
+```{r}
+
+# Model from the original (un-subsetted dataset)
+model2 <- lm(Cravings ~ Mindfulness + MI, data = dummy_data)
+summary(model2)
+```
+The overall regression model was significant, F(2, 297) = 508.80, p < .001, indicating that alcohol cravings differed significantly across the three groups (BAU, Mindfulness, and Motivational Interviewing). This means that there is a group effect (or that at least one group mean differs). The intercept represents the mean cravings score for the BAU (control) group. Participants in the BAU condition had an average cravings score of 23.89. The Mindfulness coefficient indicates that participants in the Mindfulness condition had cravings scores that were 15.88 points lower, on average, than those in the BAU group, and this difference was statistically significant (p < .001). The Motivational Interviewing coefficient indicates that participants in the MI condition had cravings scores that were 12.72 points lower, on average, than those in the BAU group, and this difference was statistically significant (p < .001).
+
+5.	Finally, rerun this model and add depression (total BDI scores) as a covariate. That is, run another regression predicting alcohol cravings from both the Mindfulness and MI (motivational interviewing) dummy variables you created as well as depression. Once again, using what you know about the equivalence of this model to an ANCOVA, in your own words, (a) the intercept, (b) the slope of the mindfulness dummy variable, (c) the slope of the MI dummy variable, and (d) the slope of depression predicting cravings.
+
+```{r}
+# Regression including depression as a covariate
+model3 <- lm(Cravings ~ Mindfulness + MI + Depression, data = dummy_data)
+summary(model3)
+```
+
+The intercept (b₀ = 20.15) represents the expected alcohol cravings score for a BAU participant with a depression score of 0. It serves as a baseline reference for the model. Holding depression constant, participants in the Mindfulness group reported cravings scores 15.63 points lower than the BAU group, a statistically significant reduction (p < .001). Holding depression constant, participants in the Motivational Interviewing group reported cravings scores 12.77 points lower than the BAU group, also statistically significant (p < .001). Across all treatment groups, each one-point increase in depression (BDI) was associated with an increase of 0.20 points in cravings, independent of treatment condition. This is a significant positive association (p < .001).

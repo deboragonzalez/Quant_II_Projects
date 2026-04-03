@@ -1,0 +1,25 @@
+---
+title: "In Class Activity Interaction"
+author: "Debi Gonzalez"
+date: "2026-03-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+class_data <- read.csv("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/In Class Activity Interactions/socialMediaAttitudes.csv")
+
+model_hrs <- lm(attitudes ~ hrsperday + onlineConflict + hrsperday*onlineConflict, data = class_data)
+summary(model_hrs)
+
+
+mean_onlineConflict <- mean(class_data$onlineConflict)
+sd_onlineConflict <- sd(class_data$onlineConflict)
+mean_onlineConflict + sd_onlineConflict
+mean_onlineConflict
+mean_onlineConflict - sd_onlineConflict
+```
+

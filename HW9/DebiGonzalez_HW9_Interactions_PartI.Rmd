@@ -1,0 +1,28 @@
+---
+title: 'HW 9: Running, Plotting, and Interpreting 2 Way Continuous x Continuous Interactions
+  Part I'
+author: "Debi Gonzalez"
+date: "2026-03-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Loading dataset
+am_data <- read.csv("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/HW 6 Multiple Regression with Two Predictors in R/academicMotivation.csv")
+
+model_am <- lm(academicMotivation ~ hrs*advisorSupport, am_data)
+summary(model_am)
+
+
+mean_advisorSupport <- mean(am_data$advisorSupport)
+sd_advisorSupport <- sd(am_data$advisorSupport)
+
+mean_advisorSupport
+sd_advisorSupport
+```
+

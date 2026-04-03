@@ -1,0 +1,210 @@
+---
+title: 'HW10: Running, Plotting, and Interpreting 2 Way Continuous x Continuous Interactions:
+  Part 2'
+author: "Debi Gonzalez"
+date: "2026-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+# Loading dataset
+am_data <- read.csv("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/HW 6 Multiple Regression with Two Predictors in R/academicMotivation.csv")
+
+model_am <- lm(academicMotivation ~ hrs*advisorSupport, am_data)
+summary(model_am)
+
+
+mean_advisorSupport <- mean(am_data$advisorSupport)
+sd_advisorSupport <- sd(am_data$advisorSupport)
+
+mean_advisorSupport
+sd_advisorSupport
+```
+
+3.	Based on the model above, let’s apply our interpretations of coefficients and simple slopes. 
+
+a.	Are there meaningful zero values for both of these predictors? (Note: the answer to this may be different in this dataset than it was in the in-class example dataset. Feel free to use your software skills to assess the unique values and range of these variables, even beyond the description above).
+
+```{r}
+
+# Exploring the variables: hrs and advisor support
+range(am_data$hrs, na.rm = TRUE)
+sort(unique(am_data$advisorSupport))
+hist(am_data$hrs, main = "Hours Worked per Week", xlab = "hrs")
+hist(am_data$advisorSupport, main = "Advisor Support", xlab = "advisorSupport")
+
+```
+To investigate whether zero is meaningful for each predictor, I examined the observed range of hrs and the unique values of advisorSupport in R. The variable advisorSupport takes values from –3 to +3, including 0, so zero is both observed and substantively meaningful as a neutral level of advisor support. In contrast, hrs ranges from 18.30 to 83.00, so zero hours is not observed in the sample. Although 0 hours/week is theoretically meaningful, it is not necessarily a meaningful reference point for interpreting this model because it falls far outside the observed range of the data
+
+b.	Keeping in mind your answer to (a), interpret the coefficients for hrs, advisorSupport, and hrs*advisorSupport in your own words. (That is, interpret b1, b2, and b3 in this model). 
+
+The coefficient for hrs (b_1=-0.069) indicates that when advisor support is 0 (an observed value representing neutral support), each additional hour worked per week is associated with a 0.069-point decrease in academic motivation. The coefficient for advisorSupport (b_2=-1.352) indicates that when hours worked equals 0, a 1-unit increase in advisor support is associated with a 1.352-point decrease in academic motivation. However, this interpretation is not practically meaningful because 0 hours is outside the observed range of the data. The interaction coefficient (b_3=0.0335) indicates that for each 1-unit increase in advisor support, the slope of hours worked on academic motivation becomes 0.0335 units more positive. This means that advisor support moderates the association between hours worked and academic motivation, such that greater advisor support weakens the negative relationship between hours worked and motivation.
+
+c.	Finally, calculate simple slopes of attitudes on hrs at each moderating value of advisorSupport (mean, +1 SD, –1SD) using the formula: [focal predictor coefficient] + [interaction coefficient]*moderatorValue.  Interpret each simple slope in words. E.g., “among individual with average values of online conflict, [INTERPRETATION]….”
+
+To calculate the simple slopes of attitudes on hrs, I'm using this formula: b1 + b3(advisor support moderator value)
+
+Mean of advisor support = 0.312
+SD of advisor support = 1.564752
+b_1=-0.069122
+b_3=0.033548
+
+At average advisor support
+  -0.069122+0.033548(0.312)=-0.0587
+
+At high advisor support (+1 SD)
+  First, the moderator value is: 0.312+1.564752=1.876752
+  Then: -0.069122+0.033548(1.876752)=-0.0062
+
+At low advisor support (–1 SD)
+  First, the moderator value is: 0.312-1.564752=-1.252752
+  Then: -0.069122+0.033548(-1.252752)=-0.1111
+
+The simple slope for hrs at the mean of advisor support is -0.0587. This means that among students with average advisor support, working more hours per week is associated with a small decrease in academic motivation. The simple slope for hrs at +1 SD of advisor support is -0.0062. This means that among students with relatively high advisor support, working more hours is associated with almost no change in academic motivation (or less of a decrease in academic motivation). The simple slope for hrs at –1 SD of advisor support is -0.1111. This means that among students with relatively low advisor support, working more hours per week is associated with a stronger decrease in academic motivation. Overall, these simple slopes confirm the prior interpretation that advisor support buffers the negative relationship between hours worked and academic motivation.
+
+
+d.	Take a moment to mentally visualize what you think the resulting plot will look like.
+
+I would expect the plot to show three non-parallel lines, one each for low, average, and high advisor support. All three would probably slope downward. However, the low advisor support line should slope downward the most strongly. The average advisor support line should also slope downward, but less steeply. The high advisor support line should be almost flat or only slightly downward.This graph would show that working more hours is linked to lower academic motivation, especially when advisor support is low.
+
+4.	Next, mean center hrs and advisorSupport. In R, this can be done using syntax of the form dat$xC = scale(dat$x, center = TRUE, scale = FALSE). In SPSS, this can be done by first obtaining the variable means using descriptives, then calculating centered versions via syntax of the form: COMPUTE xC = x – [mean value copied from descriptives]. EXECUTE. Based on the model above, let’s apply our interpretations of coefficients and simple slopes once again. 
+
+```{r}
+# Centering the predictors
+am_data$hrsC <- scale(am_data$hrs, center = TRUE, scale = FALSE)
+am_data$advisorSupportC <- scale(am_data$advisorSupport, center = TRUE, scale = FALSE)
+
+# New model with centered predictors
+model_am_c <- lm(academicMotivation ~ hrsC * advisorSupportC, data = am_data)
+summary(model_am_c)
+
+# Note: After centering, hrsC = 0 now means a student at the average number of hours worked and advisorSupportC = 0 now means a student at the average level of advisor support
+```
+
+a.	Now that you’ve mean centered both predictors, what do the zero values of these predictors mean (not a trick question)?
+
+After mean-centering the predictors, the coefficients are easier to interpret because 0 now represents the average value of each variable. So hrsC = 0 means a student works the average number of hours per week, and advisorSupportC = 0 means a student has the average level of advisor support.
+
+b.	Keeping in mind your answer to (a), interpret the coefficients for hrs, advisorSupport and hrs*advisorSupport in your own words. (That is, interpret b1, b2, and b3 in this model).
+
+The coefficient for hrsC shows that among students with average advisor support, working more hours per week is associated with a 0.059-point decrease in academic motivation for each additional hour. The coefficient for advisorSupportC shows that among students with average hours worked, a 1-unit increase in advisor support is associated with a 0.349-point increase in academic motivation. The interaction term remains positive, indicating that higher advisor support weakens the negative relationship between hours worked and academic motivation.
+
+Also, the intercept here indicates that a student with average hours worked and average advisor support is predicted to have an academic motivation score of about 0.287.
+
+5.	Next, z-score (standardize) hrs, advisorSupport, and the outcome, academicMotivation. In R, this can be done using syntax of the form dat$zx = scale(dat$x, center = TRUE, scale = TRUE) or simply, assuming defaults, dat$zx = scale(dat$x). In SPSS, this can be checking “save standardized values as variables” in the descriptives menu. Based on the model above, let’s apply our interpretations of coefficients and simple slopes once again.
+
+```{r}
+# Z-scoring the predictors and outcome for the standardized model
+am_data$z_hrs <- scale(am_data$hrs, center = TRUE, scale = TRUE)
+am_data$z_advisorSupport <- scale(am_data$advisorSupport, center = TRUE, scale = TRUE)
+am_data$z_academicMotivation <- scale(am_data$academicMotivation, center = TRUE, scale = TRUE)
+
+# Standardized interaction model
+model_am_z <- lm(z_academicMotivation ~ z_hrs * z_advisorSupport, data = am_data)
+summary(model_am_z)
+```
+
+
+a.	Now that you’ve z-score standardized both predictors and the outcome, what do the zero values of these variables mean (not a trick question)?
+
+After z-scoring, a value of 0 means the sample average, and a value of 1 means 1 standard deviation above the mean. So z_hrs = 0 means average hours worked, z_advisorSupport = 0 means average advisor support, and z_academicMotivation = 0 means average academic motivation. However, the coefficients now describe changes in academic motivation in standard deviation units rather than raw score units.
+
+b.	Regression coefficients are built around “1-unit change in a predictor, controlling for others, results in a coefficient-unit change in the outcome” interpretations. Now that you’ve z-score standardized both predictors and the outcome, what does a unit increase on any of these variables mean (again, not a trick question)?
+
+After z-score standardizing the variables, a 1-unit increase represents a 1 standard deviation increase in that variable. So instead of interpreting coefficients in raw score units, they are now interpreted in standard deviation units.
+
+c.	Keeping in mind your answers to (a) and (b), interpret the coefficients for (z-scored) hrs, advisorSupport, and hrs*advisorSupport in your own words. (That is, interpret b1, b1, and b3 in this model–REMEMBER, INTERPRET THE UNSTANDARDIZED COEFFICIENT VALUES, NOT THE BETA VALUES IN SPSS. If using R this will not be an issue in the lm function.). 
+
+The coefficient for z-scored hours worked indicates that among students with average advisor support, a 1 standard deviation increase in hours worked is associated with a 0.366 standard deviation decrease in academic motivation. The coefficient for z-scored advisor support indicates that among students with average hours worked, a 1 standard deviation increase in advisor support is associated with a 0.324 standard deviation increase in academic motivation. The interaction coefficient indicates that for each 1 standard deviation increase in advisor support, the relationship between hours worked and academic motivation becomes 0.328 standard deviations more positive, meaning improved academic motivation. This, again, suggests that advisor support buffers the negative association between working more hours and academic motivation.
+
+d.	Finally, calculate simple slopes of academicMotivation on hrs at each moderating value of z-scored advisorSupport (mean, +1 SD, –1SD … conveniently, just 0, 1, and –1 now that everything is z-scored) using either R or Excel as a calculator. Interpret what these standardized simple slopes mean at each conditional value of the moderator.
+
+My formula for simple slope of z_hrs: b1+b3(z_advisor support moderator value)
+	b_1=-0.36604
+	b_3=0.32759
+	
+```{r}
+# Standardized simple slopes for hrs at z_advisorSupport = 0, +1, and -1
+b1 <- coef(model_am_z)["z_hrs"]
+b3 <- coef(model_am_z)["z_hrs:z_advisorSupport"]
+
+# Simple slopes
+slope_mean <- b1 + b3*(0)
+slope_high <- b1 + b3*(1)
+slope_low  <- b1 + b3*(-1)
+
+slope_mean
+slope_high
+slope_low
+```
+	
+
+At average advisor support (z=0): -0.36604+0.32759(0)=-0.36604
+
+At high advisor support (z=1): -0.36604+0.32759(1)=-0.03845
+
+At low advisor support (z=-1): -0.36604+0.32759(-1)=-0.69363
+
+
+The simple slope of z_hrs at the mean of z_advisorSupport is -0.366. This means that among students with average advisor support, a 1 standard deviation increase in hours worked is associated with a 0.366 standard deviation decrease in academic motivation. The simple slope of z_hrs at +1 SD of advisor support is -0.038. This means that among students with relatively high advisor support, a 1 standard deviation increase in hours worked is associated with little to no change in academic motivation. The simple slope of z_hrs at –1 SD of advisor support is -0.694. This means that among students with relatively low advisor support, a 1 standard deviation increase in hours worked is associated with a 0.694 standard deviation decrease in academic motivation. Overall, the standardized simple slopes show that the negative relationship between hours worked and academic motivation is strongest when advisor support is low and much weaker when advisor support is high.
+
+e.	Plot the results of this standardized model using Excel.
+
+See Excel file.
+
+6.	Rerun the interaction model using raw-score hrs, z-scored advisorSupport, and raw-score academicMotivation. 
+
+```{r}
+
+# Re-creating the z-scored advisor support (so this variable remains in standard deviation units)
+am_data$z_advisorSupport <- scale(am_data$advisorSupport, center = TRUE, scale = TRUE)
+
+# The mixed model
+model_am_mixed <- lm(academicMotivation ~ hrs * z_advisorSupport, data = am_data)
+summary(model_am_mixed)
+```
+
+a.	Interpret the coefficients in your own words (That is, interpret b1, b2, and b3 in this model).
+
+The coefficient for hrs indicates that among students with average advisor support (since this variable is z-scored), each additional hour worked per week is associated with about a 0.059-point decrease in academic motivation. The coefficient for z-scored advisor support indicates that when hours worked is 0, a 1 standard deviation increase in advisor support is associated with about a 2.116-point decrease in academic motivation. However, this interpretation is not very meaningful because 0 hours is outside the observed range of hours worked in the sample. The interaction coefficient indicates that for every 1 standard deviation increase in advisor support, the relationship between hours worked and academic motivation becomes 0.052 points more positive, again suggesting that advisor support buffers the negative effect of working more hours.
+
+b.	Calculate and report the simple slopes at the mean and +/– 1 SD from the mean of z-scored advisorSupport. 
+
+simple slope of hrs = b1 + b3(z-scored advisorSupport moderator value)
+	b_1=-0.058655
+	b_3=0.052494
+
+```{r}
+
+# Simple slopes for hrs at mean, +1 SD, and -1 SD of z_advisorSupport
+b1 <- coef(model_am_mixed)["hrs"]
+b3 <- coef(model_am_mixed)["hrs:z_advisorSupport"]
+
+slope_mean_mixed <- b1 + b3*(0)
+slope_high_mixed <- b1 + b3*(1)
+slope_low_mixed  <- b1 + b3*(-1)
+
+slope_mean_mixed
+slope_high_mixed
+slope_low_mixed
+```
+The simple slope of hrs at the mean of z_advisorSupport is -0.0587. This means that among students with average advisor support, working more hours per week is associated with a small decrease in academic motivation. The simple slope at +1 SD of advisor support is -0.0062, meaning that among students with relatively high advisor support, working more hours is associated with very little decrease in academic motivation. The simple slope at -1 SD of advisor support is -0.1111, meaning that among students with relatively low advisor support, working more hours per week is associated with a stronger decrease in academic motivation.
+
+7.	Test the significance of the simple slopes at each moderator value using PROCESS or the simple_slopes() function from the ‘reghelper’ package in R. Which slopes are significant? Describe these results briefly.
+
+```{r}
+
+# Loading the library
+library(reghelper)
+
+# Using simple_slopes() function
+simple_slopes(model_am_mixed,
+              levels = list(z_advisorSupport = c(-1, 0, 1)))
+```
+The simple slope of hours worked was significant when advisor support was at its mean and at 1 SD below the mean, but it was not significant when advisor support was 1 SD above the mean. This suggests that working more hours is associated with lower academic motivation primarily when advisor support is average or low. When advisor support is high, the relationship between hours worked and academic motivation is much weaker and no longer statistically significant.
