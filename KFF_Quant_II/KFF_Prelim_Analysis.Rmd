@@ -36,6 +36,52 @@ flexibility_avg_kff_data <- weekly_kff_data %>%
     .groups = "drop" # ungrouping for future ease
   )
 
+# Identifying the therapist-led CBT sub-sample
+cbt_subsample <- kff_data %>%
+  filter(TxGroup_0 == 0) %>% # treatment group = 0 is the therapist led sub-sample
+  select(
+    ID,
+    # Baseline anxiety
+    PROMt_C_B, PROMt_Y_B, PARS_Tot_B,
+    # Behavioral problems
+    PSC_Ext_Y_B, PSC_Ext_C_B, PSC_Att_C_B, PSC_Att_Y_B,
+    # Caregiver complexity
+    PABUover_C_B, DASSd_C_B, DASSa_C_B, DASSs_C_B,
+    # ACEs
+    ACEQ_Tot_pool_B, ACEQ4_pool_B,
+    # Caregiver education
+    Educ3_C,
+    # Post-treatment anxiety
+    PROMt_C_P, PROMt_Y_P, PARS_Tot_P,
+    # Post-treatment caregiver satisfaction
+    SATQTot_C_P, SATQ_Mean_C_P_0,
+    # Post-treatment youth satisfaction
+    SATQtot_Y_P, SATQ_Mean_Y_P_0,
+    # Main outcomes control variables
+    InsecurityStatus_Pool, Male_Y_pool, AgeGrp_0, Lang_0, Black_Y_pool, Hisp_Y_pool, Site1, Site2, Site3, Site4)
+  
+# Notes to self on variable selection  
+  # Variables needed for latent baseline anxiety: PROMt_C_B, PROMt_Y_B, PARS_Tot_B
+  # Variables needed for behavioral problems: PSC_Ext_Y_B, PSC_Ext_C_B, PSC_Att_C_B, PSC_Att_Y_B
+  # Variables needed for caregiver complexity: PABUover_C_B, DASSd_C_B, DASSa_C_B, DASSs_C_B
+  # variables needed for ACEs: ACEQ_Tot_pool_B, ACEQ4_pool_B
+  # Variables needed for Caregiver Education: Educ3_C
+  # Variables needed for Post-treatment Anxiety: PROMt_C_P, PROMt_Y_P, PARS_Tot_P
+  # Variables needed for Post-Treatment Caregiver Satisfaction: SATQTot_C_P, SATQ_Mean_C_P_0
+  # Variables needed for Post-Treatment Youth Satisfaction: SATQTot_Y_P, SATQ_Mean_Y_P_0
+  # Main Outcomes control variables: InsecurityStatus_Pool, Male_Y_Pool, AgeGrp0, Lang_0, Black_Y_pool, Hisp_Y_pool
+  
+  
+  
+# Per Main Outcomes paper: All models included the following covariates: Region/Site, Language of Care, Youth Age Group, Youth Gender, Black Race, Hispanic Ethnicity, and Household Resource Insecurity.   
+  
+#Checking what my variable numbers mean
+  attr(kff_data$Educ3_C, "labels")
+# Caregiver Education (Highest Level Completed) 1 = High School or Less, 2 = Completed College, 3 = Completed Graduate School, No response
+  
+  
+  
+
 
 ```
 
