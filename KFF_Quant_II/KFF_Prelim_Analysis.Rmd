@@ -1,0 +1,79 @@
+---
+title: "KFF Preliminary Analysis"
+author: "Debi Gonzalez"
+date: "2026-04-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(haven) # read in sav files
+library(tidyverse) # for clean coding
+library(lavaan) # for latent variables
+library(ggplot2) # for graphs and tables
+library(dplyr) # for my flexibility variables
+```
+
+```{r}
+# Data cleaning and Prep
+
+# Load Datasets
+kff_data <- read_sav("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/KFF_Quant_II/KFF Data for JAGS (2.19.26).sav")
+weekly_kff_data <- read_sav("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/KFF_Quant_II/KFF Weekly Therapist Session Summary data (LONG) abridged for grad students 3.7.26.sav")
+
+# my two variables of interest: Sess_Fit and Sess_Tail
+# Both of which constitute our key flexibility variables. These are in long format.
+
+
+# Flexibility Variables: creating a sub-dataset of the weekly dataset averaging flexibility measures to then join to our main dataset
+flexibility_avg_kff_data <- weekly_kff_data %>%
+  group_by(ID) %>%
+  summarise(
+    # if all NAs for one ID, then avg variable will be NA
+    avg_Sess_Fit = if (all(is.na(Sess_Fit))) NA_real_ else mean(Sess_Fit, na.rm = TRUE), # na.rm = TRUE is telling R to ignore NA values for now
+    avg_Sess_Tail = if (all(is.na(Sess_Tail))) NA_real_ else mean(Sess_Tail, na.rm = TRUE),
+    .groups = "drop" # ungrouping for future ease
+  )
+
+
+```
+
+
+First, it characterizes the scope of fit and tailoring across sessions by defining case-level indicators of average fit, average tailoring, and, secondarily, variability in fit and tailoring across treatment. 
+
+-- Identify mean and standard deviation of fit and tailoring across each case in the sample. This creates new variables, where each case/child has a mean and sd.
+
+```{r}
+# this will use kff_data weekly to create the mean and sd for each individual child
+
+# This can then be joined with the kff_data sub-dataset
+
+```
+
+
+-- Identify mean and standard deviation of fit and tailoring across sample.
+```{r}
+# This would go with the summary statistics. 
+```
+
+
+Second, it tests whether baseline child clinical characteristics, caregiver clinical complexity, and demographic factors predict these fit and tailoring indices. 
+
+Model 1: Predicting Mean Fit
+MeanFit_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
+
+Model 2: Predicting Mean Tailoring
+MeanTailoring_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
+
+
+Third, it tests whether average fit and average tailoring predict anxiety response outcome and treatment satisfaction (for caregiver and child). 
+
+Model 3: Predicting Anxiety Outcome
+PostAnxiety_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
+
+Model 4: Predicting Caregiver Treatment Satisfaction
+CaregiverSatisfaction_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
+
+Model 5: Predicting Youth Treatment Satisfaction
+YouthSatisfaction_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
