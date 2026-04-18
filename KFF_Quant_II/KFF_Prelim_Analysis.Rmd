@@ -81,7 +81,21 @@ cbt_subsample <- kff_data %>%
   
   
   
+# Now joining the average flexibility scores to the cbt_subsample
 
+# left_join test  
+test1 <- cbt_subsample %>%
+  left_join(flexibility_avg_kff_data, by = "ID")
+
+# inner_join test
+test2 <- cbt_subsample %>%
+  inner_join(flexibility_avg_kff_data, by = "ID") # this gives us a joint dataset with only 145 cases, so I'm going to stick to the left join that has my 149 CBT cases regardless of whether we have flexibility score.
+
+# The practical difference: left_join() keeps all 149 CBT rows, even if some have no flexibility match while inner_join() keeps only rows where the ID exists in both datasets
+
+
+cbt_kff_joined <- cbt_subsample %>%
+  left_join(flexibility_avg_kff_data, by = "ID")
 
 ```
 
