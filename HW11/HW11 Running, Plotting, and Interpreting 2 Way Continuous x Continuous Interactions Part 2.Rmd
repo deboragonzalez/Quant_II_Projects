@@ -1,0 +1,104 @@
+---
+title: "HW11 Categorical by Continuous Interactions"
+author: "Debi Gonzalez"
+date: "2026-04-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1.	Begin by running a regression predicting cravings from MindfulDummy, Depression, and the interaction of MindfulDummy and Depression (all variables precomputed in the datasets, for convenience). For this analysis, all variables will be on their raw score metrics. For this question, assume you are interested in depression as the focal predictor and mindfulness vs. BAU (experimental condition) as the moderator.
+
+```{r}
+
+# Importing the data 
+dataset1 <- read.csv("/Users/debig/Documents/PhD Y1/Stats II/Quant II Projects/HW11/mindfulnessAlcTwoGroups.csv")
+
+# Running the regression model
+model1 <- lm(Cravings ~ MindfulDummy*Depression, dataset1)
+summary(model1)
+
+
+```
+
+a.	Interpret the coefficient associated with depression. Recall that the interpretation reflects the effect of depression when MindfulDummy is zero. Interpret this coefficient in words.
+
+* MindfulDummy = 0 --> means BAU condition
+
+For individuals in the BAU condition, each 1-unit increase in Depression is associated with a 0.42-point increase in Cravings, on average. This effect is statistically significant (p < .001), meaning the relationship is very unlikely to be due to chance.
+
+b.	Interpret the interaction coefficient, based on viewing depression as the focal predictor and experimental condition (mindfulness vs. BAU) as the moderator. 
+
+This coefficient tells us how the effect of depression on cravings changes when moving from BAU (0) to Mindfulness (1). The slope of depression predicting cravings is 0.44555 units smaller in the mindfulness condition compared to BAU. Since the coefficient is negative, it means the relationship between depression and cravings is weaker in the mindfulness group.
+
+c.	Plot this interaction in Excel. Use the mean and +/– 1SD from the mean of depression as your points to plot for this variable (you will need to look this up using descriptive statistics functions in R or by calculating descriptives in SPSS) and use 0 (= BAU) and 1 (=Mindfulness) as your points to plot for MindfulDummy.
+
+```{r}
+mean(dataset1$Depression)
+sd(dataset1$Depression)
+```
+
+See Excel file for the plot.
+
+d.	Calculate the simple slopes of depression predicting cravings among BAU (MindfulDummy = 0) and Mindfulness (MindfulDummy = 1) participants using either the simple_slopes() function in R or the PROCESS macro in SPSS. Interpret these simple slopes in words.
+
+```{r}
+# installing the necessary library
+library(reghelper)
+
+simple_slopes(model1)
+```
+* BAU (MindfulDummy ≈ 0) --> b = 0.4215, SE = 0.0358, t = 11.78, p < .001
+
+* Mindfulness (MindfulDummy ≈ 1) --> b = -0.0251, SE = 0.0382, t = -0.66, p = .511
+
+Among participants in the BAU condition, depression significantly predicts cravings. Specifically, a 1-unit increase in depression is associated with a 0.42 increase in cravings. Among participants in the mindfulness condition, depression is not significantly related to cravings. The slope is near zero and not statistically significant.
+
+2.	Now, let’s switch vantage points and imagine that we view MindfulDummy as the focal predictor and depression as the moderator. 
+a.	Create a z-scored version of depression (e.g., using the scale function in R or by ‘saving standardized values as variables’ in SPSS DESCRIPTIVES) and, if using SPSS, a product term between MindfulDummy and z-scored depression (e.g., named MindfulDummyXZDepression). 
+
+```{r}
+# Creating the z-score version of depression
+
+dataset1$Depression_z <- scale(dataset1$Depression)
+```
+
+
+b.	Run a regression predicting cravings from MindfulDummy, z-scored depression, and the interaction of MIndfulDummy and z-scored depression.
+
+```{r}
+# Running the new model with z-scored depression
+
+model2 <- lm(Cravings ~ MindfulDummy * Depression_z, data = dataset1)
+
+summary(model2)
+
+# Note to self: In interpreting the Main effect of MindfulDummy, we are looking at the effect of mindfulness vs BAU at average depression (z = 0). In interpreting the Interaction term, we are looking at whether the effect of mindfulness differs depending on depression level (in SD units).
+```
+
+c.	Interpret the coefficient associated with MindfulDummy. Recall that the interpretation reflects the effect of experimental condition (mean differences between Mindfulness and  BAU participants) when z-scored depression is zero. Interpret this coefficient in words.
+
+When depression is at its mean level (z-scored depression = 0), participants in the mindfulness condition have cravings that are 15.63 points lower than participants in the BAU condition, on average.
+
+d.	Interpret the interaction coefficient, based on viewing experimental condition (mindfulness vs. BAU) as the focal predictor and depression as the moderator. 
+
+The interaction coefficient indicates that the difference in cravings between mindfulness and BAU becomes more negative as depression increases. For every 1 SD increase in depression,the mindfulness vs. BAU difference in cravings becomes 3.62 points more negative. This means that mindfulness is increasingly more effective at reducing cravings as depression increases.
+
+e.	Plot this interaction in Excel. Assuming you used the mean and +/– 1SD from the mean of depression as your points to plot for this variable previously, this will only involve creating a duplicate of the plot in Excel, then clicking “Switch Row/Column” …
+
+See Excel file for "switched" plot.
+
+f.	Calculate the simple slopes of MindfulDummy among participants at the mean and +/– 1 SD from the mean of depression using either the simple_slopes() function in R or the PROCESS macro in SPSS. Interpret these simple slopes in words. (Note: in PROCESS, you can do this using the raw-score variables, rather than z-scored variables, for convenience, rather than having the z-score Depression in the ‘short names for process’ .sav file).
+
+```{r}
+# Calculating simple slopes
+
+simple_slopes(model2)
+```
+* Low depression (−1 SD) --> b = -12.0131, p < .001
+* Mean depression (0 SD) --> b = -15.6342, p < .001
+* High depression (+1 SD) --> b = -19.2553, p < .001
+
+At 1 SD below the mean of depression, participants in the mindfulness condition report about 12 fewer cravings than BAU participants, and this difference is statistically significant. At average levels of depression, mindfulness participants report about 15.63 fewer cravings than BAU participants, a significant difference. At 1 SD above the mean of depression, mindfulness participants report about 19.26 fewer cravings than BAU participants, and the relationship is also highly significant. Across all levels of depression (low, mean, and high), mindfulness is associated with significantly lower cravings compared to BAU. Importantly, the magnitude of this effect increases as depression increases, such that mindfulness is most effective among individuals with higher depression.
