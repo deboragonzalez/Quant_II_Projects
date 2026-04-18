@@ -36,6 +36,15 @@ flexibility_avg_kff_data <- weekly_kff_data %>%
     .groups = "drop" # ungrouping for future ease
   )
 
+flexibility_sd_kff_data <- weekly_kff_data %>%
+  group_by(ID) %>%
+  summarise(
+    # if all NAs for one ID, then avg variable will be NA
+    sd_Sess_Fit = if (all(is.na(Sess_Fit))) NA_real_ else sd(Sess_Fit, na.rm = TRUE), # na.rm = TRUE is telling R to ignore NA values for now
+    sd_Sess_Tail = if (all(is.na(Sess_Tail))) NA_real_ else sd(Sess_Tail, na.rm = TRUE),
+    .groups = "drop" # ungrouping for future ease
+  )
+
 # Identifying the therapist-led CBT sub-sample
 cbt_subsample <- kff_data %>%
   filter(TxGroup_0 == 0) %>% # treatment group = 0 is the therapist led sub-sample
@@ -91,14 +100,21 @@ test1 <- cbt_subsample %>%
 test2 <- cbt_subsample %>%
   inner_join(flexibility_avg_kff_data, by = "ID") # this gives us a joint dataset with only 145 cases, so I'm going to stick to the left join that has my 149 CBT cases regardless of whether we have flexibility score.
 
-# The practical difference: left_join() keeps all 149 CBT rows, even if some have no flexibility match while inner_join() keeps only rows where the ID exists in both datasets
+# The practical difference: left_join() keeps all 149 therapist-led CBT rows, even if some have no flexibility match while inner_join() keeps only rows where the ID exists in both datasets
 
 
-cbt_kff_joined <- cbt_subsample %>%
-  left_join(flexibility_avg_kff_data, by = "ID")
+cbt_kff_joined <- cbt_subsample %>% # this subsample isolates the 149 therapist led CBT cases
+  left_join(flexibility_avg_kff_data, by = "ID") %>% # joining the avg flexibility by child
+  left_join(flexibility_sd_kff_data, by = "ID") # joining the sd flexibility by child
 
 ```
 
+
+```{r}
+# Building the latent variables
+
+
+```
 
 First, it characterizes the scope of fit and tailoring across sessions by defining case-level indicators of average fit, average tailoring, and, secondarily, variability in fit and tailoring across treatment. 
 
