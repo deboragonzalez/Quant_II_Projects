@@ -13,6 +13,7 @@ library(tidyverse) # for clean coding
 library(lavaan) # for latent variables
 library(ggplot2) # for graphs and tables
 library(dplyr) # for my flexibility variables
+library(gt) # for formatting my beautiful tables :)
 ```
 
 ```{r}
@@ -53,9 +54,9 @@ cbt_subsample <- kff_data %>%
     ID,
     # Baseline anxiety
     PROMt_C_B, PROMt_Y_B, PARS_Tot_B,
-    # Behavioral problems
+    # Behavioral problems (externalizing and anxiety)
     PSC_Ext_Y_B, PSC_Ext_C_B, PSC_Att_C_B, PSC_Att_Y_B,
-    # Caregiver complexity
+    # Caregiver complexity (accomodation and clinical complexity)
     PABUover_C_B, DASSd_C_B, DASSa_C_B, DASSs_C_B,
     # ACEs
     ACEQ_Tot_pool_B, ACEQ4_pool_B,
@@ -196,6 +197,56 @@ cbt_kff_joined_latent[idx, "ID"]
 # Note on latent variable scale interpretation: they are factor scores estimated by lavPredict(), not observed raw scores. Each latent variable was scaled by fixing its variance to 1 in the model, instead of fixing the first loading to 1. Latent means are fixed to 0 by default in a single-group model.So, A score like 0 means the person is around the sample’s latent mean, +1 means about one latent standard deviation above the sample mean, -1 means about one latent standard deviation below the sample mean. This means that higher scores indicate more of the latent construct, scores are centered approximately around zero, and a 1-unit difference is roughly a 1-SD difference on the latent factor scale.
 
 
+# Now that I have my latent variables, I'm going to add some more demographic variables from the original dataset for a descriptive statistics table
+
+race_gender_vars <- kff_data %>%
+  select(
+    ID,
+    Gender_Y_pool,
+    White_Y_pool,
+    AmInd_Y_pool,
+    Asian_Y_pool,
+    NatHPI_Y_pool,
+    NotList_Y_pool,
+    NonHispWhite_Y_pool)
+
+cbt_kff_joined_latent <- cbt_kff_joined_latent %>%
+  left_join(race_gender_vars, by = "ID")
+
+# For this demographics table, given my sample size, I'm creating a summary race variable:
+
+cbt_kff_joined_latent <- cbt_kff_joined_latent %>%
+  mutate(
+    Other_Racial_Groups = if_else(
+      AmInd_Y_pool == 1 |
+      Asian_Y_pool == 1 |
+      NatHPI_Y_pool == 1 |
+      NotList_Y_pool == 1,
+      1,0)) # Missing Middle Eastern/Northern African bc it was not included in the raw dataset provided by the lab
+# Checking my numbers
+cbt_kff_joined_latent %>%
+  count(Other_Racial_Groups) %>% 
+  view()
+# Note that this does not 100% match the main outcomes paper bc of the missing middle eastern and nothern african variable.
+
+# Extra verification of my numbers.
+kff_data %>% 
+  filter(TxGroup_0 == 0) %>% 
+  count(NotList_Y_pool)
+
+kff_data %>% 
+  filter(TxGroup_0 == 0) %>% 
+  count(AmInd_Y_pool)
+
+kff_data %>% 
+  filter(TxGroup_0 == 0) %>% 
+  count(Asian_Y_pool)
+
+kff_data %>% 
+  filter(TxGroup_0 == 0) %>% 
+  count(NatHPI_Y_pool)
+
+
 ```
 
 First, it characterizes the scope of fit and tailoring across sessions by defining case-level indicators of average fit, average tailoring, and, secondarily, variability in fit and tailoring across treatment. 
@@ -215,9 +266,9 @@ First, it characterizes the scope of fit and tailoring across sessions by defini
 ```
 
 ```{r}
-# Initial table of *descriptive statistics* with means, SDs, and lower triangle of the correlation matrix for the following variables: fit, tailoring, baseline anxiety severity, externalizing behavior problems, attention behavior problems, caregiver complexity, caregiver accommodation, post-treatment anxiety severity, caregiver treatment satisfaction, youth treatment satisfaction
+# Initial table of *descriptive statistics* with means, SDs, and lower triangle of the correlation matrix for the following variables: fit, tailoring, baseline anxiety severity, ACEs Total score, externalizing behavior problems, attention behavior problems, caregiver complexity, caregiver accommodation, post-treatment anxiety severity, caregiver treatment satisfaction, youth treatment satisfaction
 ```
-
+From my cbt_kff_joined_latent dataset, I want to create a table of descriptive statistics with means, SDs, and lower triangle of the correlation matrix of
 
 Second, it tests whether baseline child clinical characteristics, caregiver clinical complexity, and demographic factors predict these fit and tailoring indices. 
 
