@@ -36,6 +36,7 @@ flexibility_avg_kff_data <- weekly_kff_data %>%
     .groups = "drop" # ungrouping for future ease
   )
 
+# Doing the same for SD variables
 flexibility_sd_kff_data <- weekly_kff_data %>%
   group_by(ID) %>%
   summarise(
@@ -111,8 +112,22 @@ cbt_kff_joined <- cbt_subsample %>% # this subsample isolates the 149 therapist 
 
 
 ```{r}
-# Building the latent variables
+# Building the latent variables: baseline anxiety severity, baseline behavioral problems, baseline caregiver complexity, post-treatment anxiety severity
 
+# library lavaan is already loaded --> best practice for latent variables bc the latent factor is estimated from the covariance structure, so indicators can be on different scales.
+
+latent_model <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
+  behavior_problems =~ PSC_Ext_Y_B + PSC_Ext_C_B + PSC_Att_C_B + PSC_Att_Y_B
+  caregiver_complexity =~ PABUover_C_B + DASSd_C_B + DASSa_C_B + DASSs_C_B
+  post_anxiety =~ PROMt_C_P + PROMt_Y_P + PARS_Tot_P'
+
+fit <- cfa(
+  latent_model,
+  data = cbt_kff_joined,
+  missing = "fiml", # telling my model to use full-information maximum likelihood to handle missing data, instead of the default listwise deletion; it is not creating imputed values you can inspect in the dataset
+  std.lv = TRUE) # telling lavaan to fix each latent variable’s variance to 1 so the factor is put on a standardized scale.
+
+summary(fit, fit.measures = TRUE, standardized = TRUE)
 
 ```
 
@@ -121,9 +136,7 @@ First, it characterizes the scope of fit and tailoring across sessions by defini
 -- Identify mean and standard deviation of fit and tailoring across each case in the sample. This creates new variables, where each case/child has a mean and sd.
 
 ```{r}
-# this will use kff_data weekly to create the mean and sd for each individual child
 
-# This can then be joined with the kff_data sub-dataset
 
 ```
 
