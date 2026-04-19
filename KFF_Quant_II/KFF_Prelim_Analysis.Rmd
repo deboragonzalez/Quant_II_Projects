@@ -116,34 +116,106 @@ cbt_kff_joined <- cbt_subsample %>% # this subsample isolates the 149 therapist 
 
 # library lavaan is already loaded --> best practice for latent variables bc the latent factor is estimated from the covariance structure, so indicators can be on different scales.
 
-latent_model <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
+latent_model1 <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
   behavior_problems =~ PSC_Ext_Y_B + PSC_Ext_C_B + PSC_Att_C_B + PSC_Att_Y_B
   caregiver_complexity =~ PABUover_C_B + DASSd_C_B + DASSa_C_B + DASSs_C_B
   post_anxiety =~ PROMt_C_P + PROMt_Y_P + PARS_Tot_P'
 
-fit <- cfa(
-  latent_model,
+fit1 <- cfa(
+  latent_model1,
   data = cbt_kff_joined,
   missing = "fiml", # telling my model to use full-information maximum likelihood to handle missing data, instead of the default listwise deletion; it is not creating imputed values you can inspect in the dataset
   std.lv = TRUE) # telling lavaan to fix each latent variable’s variance to 1 so the factor is put on a standardized scale.
 
-summary(fit, fit.measures = TRUE, standardized = TRUE)
+summary(fit1, fit.measures = TRUE, standardized = TRUE)
+
+
+# Based on these findings, I have decided to create a new set of latent variables that may be more appropriate.
+
+latent_model2 <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
+  behavior_problems =~ PSC_Ext_Y_B + PSC_Ext_C_B + PSC_Att_C_B + PSC_Att_Y_B
+  caregiver_complexity =~ DASSd_C_B + DASSa_C_B + DASSs_C_B
+  post_anxiety =~ PROMt_C_P + PROMt_Y_P + PARS_Tot_P'
+# The main change is removing caregiver accomodation measure from the caregiver complexity latent variable as it barely loads on the factor and it's positive while the other three DASS variables are negative.
+
+fit2 <- cfa(
+  latent_model2,
+  data = cbt_kff_joined,
+  missing = "fiml", # telling my model to use full-information maximum likelihood to handle missing data, instead of the default listwise deletion; it is not creating imputed values you can inspect in the dataset
+  std.lv = TRUE) # telling lavaan to fix each latent variable’s variance to 1 so the factor is put on a standardized scale.
+
+summary(fit2, fit.measures = TRUE, standardized = TRUE)
+
+# Removing PABUover_C_B helped:
+  # the caregiver factor no longer has mixed signs
+  # the three DASS indicators now all load strongly and positively
+  # SRMR improved from 0.077 to 0.069
+  # CFI improved from 0.823 to 0.862
+  # TLI improved from 0.773 to 0.818
+  # RMSEA improved a little from 0.090 to 0.085
+
+
+# Let's try one more time creating two constructs of behavior problems: one for attention and one for externalizing problems.
+
+latent_model3 <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
+  behavior_problems_ext =~ PSC_Ext_Y_B + PSC_Ext_C_B
+  behavior_problems_att =~ PSC_Att_C_B + PSC_Att_Y_B
+  caregiver_complexity =~ DASSd_C_B + DASSa_C_B + DASSs_C_B
+  post_anxiety =~ PROMt_C_P + PROMt_Y_P + PARS_Tot_P'
+# The main change is removing caregiver accomodation measure from the caregiver complexity latent variable as it barely loads on the factor and it's positive while the other three DASS variables are negative.
+
+fit3 <- cfa(
+  latent_model3,
+  data = cbt_kff_joined,
+  missing = "fiml", # telling my model to use full-information maximum likelihood to handle missing data, instead of the default listwise deletion; it is not creating imputed values you can inspect in the dataset
+  std.lv = TRUE) # telling lavaan to fix each latent variable’s variance to 1 so the factor is put on a standardized scale.
+
+summary(fit3, fit.measures = TRUE, standardized = TRUE)
+
+modificationIndices(fit3, sort. = TRUE, minimum.value = 10)
+# This says the model sees only one main leftover source of misfit: it suggests that DASSs_C_B might also load on behavior_problems_ext. Conceptually though I do not want to add caregiver stress to the measure of child externalizing problems, even if they are correlated. Caregiver stress (DASSs_C_B) may share variance with externalizing problems that is not fully captured by the current factor structure.
+
+# A revised CFA separating behavioral problems into externalizing and attention factors showed improved fit relative to prior models, χ²(55) = 102.08, p < .001, CFI = .898, TLI = .855, RMSEA = .076, SRMR = .062. Standardized loadings were moderate to strong for baseline anxiety, caregiver complexity, and post-treatment anxiety, and the split behavioral factors showed significant loadings for both externalizing and attention indicators. The externalizing and attention factors were moderately correlated, supporting their related but distinct nature.
+
+
+# Adding the latent variables to the main analysis dataset:
+
+fscores <- as.data.frame(lavPredict(fit3)) # creates the latent score columns in data frame format
+idx <- lavInspect(fit3, "case.idx") # gives the exact row positions those scores belong to
+
+cbt_kff_joined_latent <- cbt_kff_joined # Creating a new dataset that includes the latent variables
+cbt_kff_joined_latent[colnames(fscores)] <- NA_real_ # creates all needed latent columns at once
+cbt_kff_joined_latent[idx, colnames(fscores)] <- fscores # this fills in the correct rows
+
+# Checking that my data combined correctly:
+length(idx) == nrow(fscores)
+cbt_kff_joined[idx, "ID"]
+cbt_kff_joined_latent[idx, "ID"]
+
+
+# Note on latent variable scale interpretation: they are factor scores estimated by lavPredict(), not observed raw scores. Each latent variable was scaled by fixing its variance to 1 in the model, instead of fixing the first loading to 1. Latent means are fixed to 0 by default in a single-group model.So, A score like 0 means the person is around the sample’s latent mean, +1 means about one latent standard deviation above the sample mean, -1 means about one latent standard deviation below the sample mean. This means that higher scores indicate more of the latent construct, scores are centered approximately around zero, and a 1-unit difference is roughly a 1-SD difference on the latent factor scale.
+
 
 ```
 
 First, it characterizes the scope of fit and tailoring across sessions by defining case-level indicators of average fit, average tailoring, and, secondarily, variability in fit and tailoring across treatment. 
 
--- Identify mean and standard deviation of fit and tailoring across each case in the sample. This creates new variables, where each case/child has a mean and sd.
 
 ```{r}
+
+# Demographics Summary Table (Age group, sex, race/ethnicity, resource instability, parental education)
+
+
+# Flexibility across the sample: a table of summary statistics
+
+
+# Let's visualize the distribution of mean fit and tailoring across the sample --> histogram
 
 
 ```
 
-
--- Identify mean and standard deviation of fit and tailoring across sample.
 ```{r}
-# This would go with the summary statistics. 
+# Initial table of *descriptive statistics* with means, SDs, and lower triangle of the correlation matrix for the following variables: fit, tailoring, baseline anxiety severity, externalizing behavior problems, attention behavior problems, caregiver complexity, caregiver accommodation, post-treatment anxiety severity, caregiver treatment satisfaction, youth treatment satisfaction
 ```
 
 
