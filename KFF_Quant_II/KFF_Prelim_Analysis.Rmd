@@ -10,10 +10,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(haven) # read in sav files
 library(tidyverse) # for clean coding
+library(tidyr) # for pivot_longer and other table manipulations and data cleaning
 library(lavaan) # for latent variables
 library(ggplot2) # for graphs and tables
-library(dplyr) # for my flexibility variables
+library(dplyr) # for my flexibility variables and later tables (data wrangling)
 library(gt) # for formatting my beautiful tables :)
+library(tibble) # another library for tables that lets us manually build small data frames
 ```
 
 ```{r}
@@ -257,23 +259,419 @@ First, it characterizes the scope of fit and tailoring across sessions by defini
 # Demographics Summary Table (Age group, sex, race/ethnicity, resource instability, parental education)
 
 
+# Building the main demographics table data. This part creates all the demographic sections EXCEPT race/ethnicity (not mutually exclusive)
+demo_table_data <- cbt_kff_joined_latent %>%
+  transmute(
+    # transmute() creates a new data frame using only the variables listed here. It drops everything else, so we can have a clean dataframe for the table.
+
+    `Caregiver Education` = case_when(
+      Educ3_C == 1 ~ "High School or Less",
+      Educ3_C == 2 ~ "Completed College",
+      Educ3_C == 3 ~ "Completed Graduate School",
+      TRUE ~ "No response"),
+    # Recoding Educ3_C into readable category labels. Any value not equal to 1, 2, or 3 becomes "No response".
+
+    `Resource Instability` = case_when(
+      InsecurityStatus_Pool == 0 ~ "Did not endorse housing/resource insecurity",
+      InsecurityStatus_Pool == 1 ~ "Endorsed housing/resource insecurity",
+      TRUE ~ "No response"),
+    # Recoding binary insecurity variable into readable labels.
+
+    `Sex/Gender` = case_when(
+      Gender_Y_pool == 1 ~ "Male",
+      Gender_Y_pool == 2 ~ "Female",
+      Gender_Y_pool == 3 ~ "Non-binary",
+      Gender_Y_pool == 4 ~ "Gender fluid",
+      Gender_Y_pool == 5 ~ "Trans male",
+      Gender_Y_pool == 6 ~ "Trans female",
+      Gender_Y_pool == 7 ~ "Different identity",
+      Gender_Y_pool == 888 ~ "Prefer not to answer",
+      TRUE ~ "No response"),
+    # Recoding gender variable into readable categories.
+
+    `Age Group` = case_when(
+      AgeGrp_0 == 0 ~ "7-12 years",
+      AgeGrp_0 == 1 ~ "13+ years",
+      TRUE ~ "No response"),
+    # Recoding age group into readable labels.
+
+    `Language` = case_when(
+      Lang_0 == 0 ~ "English",
+      Lang_0 == 1 ~ "Spanish",
+      TRUE ~ "No response"),
+    # Recoding language variable into readable labels.
+
+    `Region` = case_when(
+      Site1 == 1 ~ "Baltimore",
+      Site2 == 1 ~ "Boston",
+      Site3 == 1 ~ "Miami",
+      Site4 == 1 ~ "Seattle",
+      TRUE ~ "No response") # Recoding site indicators into one readable region label. Each person belongs to one site only.
+  ) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Characteristic",
+    values_to = "Category") %>%
+  # pivot_longer() reshapes the data from wide to long format. Before: one row per person, many demographic columns. After: one row per person per demographic variable. This would be more suitable for summaries.
+
+  count(Characteristic, Category, name = "n") %>%
+  # Counting how many times each Category (the labels of the variables) appears within each Characteristic.
+
+  group_by(Characteristic) %>%
+  mutate(
+    percent = 100 * n / sum(n)) %>%
+  # Now calculating the percentage of each characteristic within a variable (i.e. the labels/categories).
+  ungroup()
+  # Removing grouping so later operations act on the full data frame normally.
+
+
+# Building the race/ethnicity separately as a multi-response section. Each indicator is counted independently, so percentages do not need to sum to 100%.
+# This is because participants were allowed to choose more than 1 category.
+
+race_table_data <- tibble(
+  Characteristic = "Race/Ethnicity",
+  # Creating a small manual data frame where every row belongs to the "Race/Ethnicity" section of the final table.
+
+  Category = c(
+    "Non-Hispanic White",
+    "Hispanic",
+    "Black",
+    "Other Racial Groups",
+    "No Response"),
+  # These are the row labels that will appear under Race/Ethnicity.
+
+  n = c(
+    sum(cbt_kff_joined_latent$NonHispWhite_Y_pool == 1, na.rm = TRUE),
+    sum(cbt_kff_joined_latent$Hisp_Y_pool == 1, na.rm = TRUE),
+    sum(cbt_kff_joined_latent$Black_Y_pool == 1, na.rm = TRUE),
+    sum(cbt_kff_joined_latent$Other_Racial_Groups == 1, na.rm = TRUE),
+    sum(is.na(cbt_kff_joined_latent$NotList_Y_pool)))
+  # For each indicator, counting how many people have value 1. Counting NAs as no response.
+) %>%
+  mutate(percent = 100 * n / nrow(cbt_kff_joined_latent))
+  # Calculating the race percentages using the FULL sample size as denominator, not the sum of race counts.
+
+
+# Now, we have to combine the main demographics data with the race data
+demo_table_data <- bind_rows(
+  demo_table_data,
+  race_table_data)
+# Stacking the race rows underneath the rows from the main demographic table. Now the demo_table_data contains all necessary demographic sections.
+
+# Specifying which sections should be sorted by descending count; this variable will be used to specify this below.
+sort_by_n <- c("Race/Ethnicity", "Region", "Resource Instability", "Sex/Gender")
+# These section names will be sorted so the largest n category appears first.
+
+# Applying the ordering rules: Some sections should be sorted by descending n. Others should keep a logical order defined manually.
+demo_table_data <- bind_rows(
+  demo_table_data %>%
+    filter(Characteristic %in% sort_by_n) %>%
+    # Keeping only the sections that should be sorted by descending count.
+
+    group_by(Characteristic) %>%
+    arrange(desc(n), .by_group = TRUE) %>%
+    # Within each selected section, sorting rows from highest n to lowest n.
+
+    mutate(order = row_number()) %>%
+    # Creating an order variable: 1, 2, 3, ... This will be used later to preserve the sorted order.
+
+    ungroup(),
+
+  demo_table_data %>%
+    filter(!Characteristic %in% sort_by_n) %>%
+    # Now, only keeping sections that should NOT be sorted by n.
+
+    mutate(
+      order = case_when(
+        Characteristic == "Age Group" & Category == "7-12 years" ~ 1,
+        Characteristic == "Age Group" & Category == "13+ years" ~ 2,
+        Characteristic == "Age Group" & Category == "No response" ~ 3,
+
+        Characteristic == "Language" & Category == "English" ~ 1,
+        Characteristic == "Language" & Category == "Spanish" ~ 2,
+        Characteristic == "Language" & Category == "No response" ~ 3,
+
+        Characteristic == "Caregiver Education" & Category == "High School or Less" ~ 1,
+        Characteristic == "Caregiver Education" & Category == "Completed College" ~ 2,
+        Characteristic == "Caregiver Education" & Category == "Completed Graduate School" ~ 3,
+        Characteristic == "Caregiver Education" & Category == "No response" ~ 4,
+
+        TRUE ~ 99))
+    # Manually assigning a display order for sections where I want a meaningful sequence instead of descending frequency.
+) %>%
+  mutate(
+    Category = paste0("\u00A0\u00A0\u00A0", Category),
+    # Adding leading non-breaking spaces to indent category labels under each heading. There might be a better way to do this, but this is what I got now.
+    `n (%)` = sprintf("%d (%.1f%%)", n, percent)
+    # Formatting count and percentage into a single display column.
+  ) %>%
+  arrange(
+    factor(Characteristic,
+      levels = c(
+        "Age Group",
+        "Sex/Gender",
+        "Race/Ethnicity",
+        "Language",
+        "Region",
+        "Caregiver Education",        
+        "Resource Instability")),
+    order)
+  # Arranging the table rows so the demographic sections appear in a cohesive order and within each section we will be using the previously defined row order.
+
+
+
+# Turning the prepared data into a gt table
+demo_gt <- demo_table_data %>%
+  select(Characteristic, Category, `n (%)`) %>%
+  # Keeping only the columns needed for the final display table.
+
+  gt(groupname_col = "Characteristic") %>%
+  # Creating a gt table and using Characteristic as the row-group heading. This makes Age Group, Sex/Gender, etc. appear as grouped section headers.
+  cols_label(
+    Category = "",
+    `n (%)` = "n (%)") %>%
+  # Setting the displayed column labels. Category column gets a blank header for a cleaner look.
+  tab_header(
+    title = md("**Therapist-Led CBT Sample Demographics**")) %>%
+  # Adding a table title and bolding it.
+  tab_source_note(source_note = md("*Note.* Participants could select multiple race/ethnicity categories, so race/ethnicity categories were counted independently. Percentages in this section may not sum to 100%.")) %>%
+  # Adding the explanatory note under the table for the race/ethnicity variable design.
+  opt_table_font(font = list("Times New Roman", "Times")) %>%
+  # Setting two font option Times New Roman first, if not available trying Times.
+  tab_style(style = cell_text(weight = "bold"),
+    locations = cells_row_groups()) %>%
+  # Making each section heading bold.
+#  tab_style(style = cell_text(weight = "bold"),
+#    locations = cells_title(groups = "title")) %>%
+  # Making the table title bold, but not necessary since I used the markdown syntac in the tab_header prompt.
+  cols_align(align = "left", columns = Category) %>%
+  # Left-aligning the category text.
+  cols_align(align = "center", columns = `n (%)`) %>%
+  # Centering the n (%) column.
+  cols_width(
+    Category ~ px(260),
+    `n (%)` ~ px(90)
+  ) %>%
+  tab_options(table.font.size = px(14),
+    heading.title.font.size = px(16),
+    row_group.font.size = px(14),
+    data_row.padding = px(4),
+    row_group.padding = px(5),
+    table.border.top.width = px(1.5),
+    table.border.bottom.width = px(1.5),
+    heading.border.bottom.width = px(1),
+    row_group.border.top.width = px(1),
+    table_body.border.bottom.width = px(1))
+  # Adjusting font sizes, row spacing, and border widths to make the table look cleaner.
+
+# Printing the final formatted table
+demo_gt
+
+
+
+
 # Flexibility across the sample: a table of summary statistics
+
+
 
 
 # Let's visualize the distribution of mean fit and tailoring across the sample --> histogram
 
+# Histogram for Fit across the sample
+avg_Fit_dist <- ggplot(cbt_kff_joined_latent, aes(x = avg_Sess_Fit)) +
+  geom_histogram(bins = 15,
+    fill = "lightblue",
+    color = "blue") +
+  labs(title = "Distribution of Average Session Fit",
+    x = "Average Session Fit",
+    y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+avg_Fit_dist
 
+# Histogram for Tailoring
+avg_tail_dist <- ggplot(cbt_kff_joined_latent, aes(x = avg_Sess_Tail)) +
+  geom_histogram(bins = 15,
+    fill = "lightgreen",
+    color = "darkgreen") +
+  labs(title = "Distribution of Average Session Tailoring",
+    x = "Average Session Tailoring",
+    y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+avg_tail_dist
 ```
 
 ```{r}
+# FIX CODE COMMENTS AND SIMPLIFY CODE FOR THIS TABLE
+
 # Initial table of *descriptive statistics* with means, SDs, and lower triangle of the correlation matrix for the following variables: fit, tailoring, baseline anxiety severity, ACEs Total score, externalizing behavior problems, attention behavior problems, caregiver complexity, caregiver accommodation, post-treatment anxiety severity, caregiver treatment satisfaction, youth treatment satisfaction
+
+# ------------------------------------------------------------
+# STEP 1: Select the variables for the table and rename them
+# ------------------------------------------------------------
+# This creates a smaller dataset containing only the variables
+# you want in the descriptive statistics / correlation table.
+
+desc_data <- cbt_kff_joined_latent %>%
+  select(
+    `Fit` = avg_Sess_Fit,
+    `Tailoring` = avg_Sess_Tail,
+    `Baseline Anxiety Severity` = baseline_anxiety,
+    `ACEs Total Score` = ACEQ_Tot_pool_B,
+    `Externalizing Behavior Problems` = behavior_problems_ext,
+    `Attention Behavior Problems` = behavior_problems_att,
+    `Caregiver Complexity` = caregiver_complexity,
+    `Caregiver Accommodation` = PABUover_C_B,
+    `Post-treatment Anxiety Severity` = post_anxiety,
+    `Caregiver Treatment Satisfaction` = SATQ_Mean_C_P_0,
+    `Youth Treatment Satisfaction` = SATQ_Mean_Y_P_0
+  )
+
+# ------------------------------------------------------------
+# STEP 2: Compute descriptive statistics for each variable
+# ------------------------------------------------------------
+# sapply() applies a function to each column of desc_data.
+# na.rm = TRUE means missing values are ignored.
+
+means <- sapply(desc_data, mean, na.rm = TRUE)
+sds   <- sapply(desc_data, sd, na.rm = TRUE)
+
+# ------------------------------------------------------------
+# STEP 3: Compute the correlation matrix
+# ------------------------------------------------------------
+# use = "pairwise.complete.obs" means each correlation is computed
+# using all cases that have data on that specific pair of variables.
+
+cor_mat <- cor(desc_data, use = "pairwise.complete.obs")
+
+# Create a display version of the correlation matrix where:
+# - the diagonal is blank
+# - the upper triangle is blank
+# so only the lower triangle remains visible in the final table
+
+cor_display <- cor_mat
+cor_display[upper.tri(cor_display, diag = TRUE)] <- NA
+
+# ------------------------------------------------------------
+# STEP 4: Build the table data frame
+# ------------------------------------------------------------
+# This starts the table with:
+# - Variable name
+# - Mean
+# - SD
+
+table_df <- data.frame(
+  Variable = names(desc_data),
+  Mean = round(means, 2),
+  SD = round(sds, 2),
+  check.names = FALSE
+)
+# round(..., 2) rounds values to 2 decimal places.
+# check.names = FALSE keeps column names exactly as written.
+
+# Add numbering to the variable names so the correlation columns
+# can be matched to the numbered variable list.
+
+table_df <- table_df %>%
+  mutate(
+    Variable = paste0(seq_along(Variable), ". ", Variable)
+  )
+
+# Add one correlation column at a time.
+# The columns are named 1, 2, 3, etc. to match the numbered variable list.
+
+for (i in seq_len(ncol(cor_display))) {
+  table_df[[as.character(i)]] <- round(cor_display[, i], 2)
+}
+
+# Replace all NA values with blank cells for cleaner table display.
+# This removes the visible NAs in the upper triangle and diagonal.
+
+table_df[is.na(table_df)] <- ""
+
+# ------------------------------------------------------------
+# STEP 5: Create the formatted gt table
+# ------------------------------------------------------------
+
+desc_gt <- table_df %>%
+  gt() %>%
+  # Convert the data frame into a gt table
+
+  tab_header(
+    title = md("**Descriptive Statistics and Correlations**")
+  ) %>%
+  # Add a bold title using markdown
+
+  cols_label(
+    Variable = "Variable",
+    Mean = "M",
+    SD = "SD"
+  ) %>%
+  # Rename displayed column headers.
+  # Correlation columns keep their numbered labels automatically.
+
+  opt_table_font(
+    font = list(
+      "Times New Roman",
+      "Times",
+      "Liberation Serif",
+      "Nimbus Roman",
+      "serif"
+    )
+  ) %>%
+  # Set a serif font stack so the table looks close to Times New Roman
+
+  cols_align(
+    align = "left",
+    columns = Variable
+  ) %>%
+  # Left-align the variable names
+
+  cols_align(
+    align = "center",
+    columns = -Variable
+  ) %>%
+  # Center-align all other columns (M, SD, and correlations)
+
+  cols_width(
+    Variable ~ px(320),
+    Mean ~ px(70),
+    SD ~ px(70)
+  ) %>%
+  # Set column widths.
+  # This makes the variable-name column wide enough for long labels,
+  # while keeping Mean and SD narrow.
+
+  tab_options(
+    table.font.size = px(14),
+    heading.title.font.size = px(16),
+    data_row.padding = px(4),
+    table.border.top.width = px(1.5),
+    table.border.bottom.width = px(1.5),
+    heading.border.bottom.width = px(1),
+    table_body.border.bottom.width = px(1)
+  )
+  # Control font size, title size, row spacing, and table borders
+  # to make the table look cleaner and more journal-style
+
+# ------------------------------------------------------------
+# STEP 6: Print the final table
+# ------------------------------------------------------------
+
+desc_gt
+# Display the finished gt table
 ```
-From my cbt_kff_joined_latent dataset, I want to create a table of descriptive statistics with means, SDs, and lower triangle of the correlation matrix of
+
 
 Second, it tests whether baseline child clinical characteristics, caregiver clinical complexity, and demographic factors predict these fit and tailoring indices. 
 
 Model 1: Predicting Mean Fit
 MeanFit_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
+
+```{r}
+
+```
 
 Model 2: Predicting Mean Tailoring
 MeanTailoring_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
