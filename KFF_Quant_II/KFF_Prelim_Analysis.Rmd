@@ -670,11 +670,19 @@ Model 1: Predicting Mean Fit
 MeanFit_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
 
 ```{r}
+model1 <- lm(avg_Sess_Fit ~ baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model1)
 
+# The Main Outcomes paper controls: InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3
 ```
 
 Model 2: Predicting Mean Tailoring
 MeanTailoring_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
+
+```{r}
+model2 <- lm(avg_Sess_Tail ~ baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model2)
+```
 
 
 Third, it tests whether average fit and average tailoring predict anxiety response outcome and treatment satisfaction (for caregiver and child). 
@@ -682,8 +690,45 @@ Third, it tests whether average fit and average tailoring predict anxiety respon
 Model 3: Predicting Anxiety Outcome
 PostAnxiety_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
 
+```{r}
+model3 <- lm(post_anxiety ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model3)
+
+model3a <- lm(post_anxiety ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model3a)
+
+model3b <- lm(post_anxiety ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model3b)
+
+```
+
+
 Model 4: Predicting Caregiver Treatment Satisfaction
 CaregiverSatisfaction_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
 
+```{r}
+model4 <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model4)
+
+model4a <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model4a)
+
+model4b <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model4b)
+```
+
+
 Model 5: Predicting Youth Treatment Satisfaction
 YouthSatisfaction_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
+
+```{r}
+model5 <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model5)
+
+model5a <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model5a)
+
+model5b <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model5b)
+```
+
