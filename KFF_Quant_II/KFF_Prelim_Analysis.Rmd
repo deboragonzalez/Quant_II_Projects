@@ -16,6 +16,7 @@ library(ggplot2) # for graphs and tables
 library(dplyr) # for my flexibility variables and later tables (data wrangling)
 library(gt) # for formatting my beautiful tables :)
 library(tibble) # another library for tables that lets us manually build small data frames
+library(broom) # to transform model output into tidy data frames (i.e. extract the regression coefficients, standard errors, t values, and p values)
 ```
 
 ```{r}
@@ -466,15 +467,10 @@ demo_gt <- demo_table_data %>%
 
 # Printing the final formatted table
 demo_gt
+```
 
 
-
-
-# Flexibility across the sample: a table of summary statistics
-
-
-
-
+```{r}
 # Let's visualize the distribution of mean fit and tailoring across the sample --> histogram
 
 # Histogram for Fit across the sample
@@ -503,15 +499,11 @@ avg_tail_dist
 ```
 
 ```{r}
-# FIX CODE COMMENTS AND SIMPLIFY CODE FOR THIS TABLE
 
-# Initial table of *descriptive statistics* with means, SDs, and lower triangle of the correlation matrix for the following variables: fit, tailoring, baseline anxiety severity, ACEs Total score, externalizing behavior problems, attention behavior problems, caregiver complexity, caregiver accommodation, post-treatment anxiety severity, caregiver treatment satisfaction, youth treatment satisfaction
+# Initial table of *descriptive statistics* with means, SDs, and lower triangle of the correlation matrix for the following variables: fit, tailoring, baseline anxiety severity, ACEs Total score, externalizing behavior problems, attention behavior problems, caregiver complexity, caregiver accommodation: overprotection, post-treatment anxiety severity, caregiver treatment satisfaction, youth treatment satisfaction
 
-# ------------------------------------------------------------
-# STEP 1: Select the variables for the table and rename them
-# ------------------------------------------------------------
-# This creates a smaller dataset containing only the variables
-# you want in the descriptive statistics / correlation table.
+
+# Selecting the variables for the table and renaming them. This is subset or smaller dataset containing only the variables that we will need in the descriptive statistics / correlation table.
 
 desc_data <- cbt_kff_joined_latent %>%
   select(
@@ -522,145 +514,92 @@ desc_data <- cbt_kff_joined_latent %>%
     `Externalizing Behavior Problems` = behavior_problems_ext,
     `Attention Behavior Problems` = behavior_problems_att,
     `Caregiver Complexity` = caregiver_complexity,
-    `Caregiver Accommodation` = PABUover_C_B,
+    `Caregiver Accommodation: Overprotection` = PABUover_C_B,
     `Post-treatment Anxiety Severity` = post_anxiety,
     `Caregiver Treatment Satisfaction` = SATQ_Mean_C_P_0,
-    `Youth Treatment Satisfaction` = SATQ_Mean_Y_P_0
-  )
+    `Youth Treatment Satisfaction` = SATQ_Mean_Y_P_0)
 
-# ------------------------------------------------------------
-# STEP 2: Compute descriptive statistics for each variable
-# ------------------------------------------------------------
-# sapply() applies a function to each column of desc_data.
-# na.rm = TRUE means missing values are ignored.
+# Computing descriptive statistics for each variable
 
+# sapply() applies a function (like mean and sd) to each column of the subset dataset desc_data while na.rm = TRUE means missing values are ignored.
 means <- sapply(desc_data, mean, na.rm = TRUE)
 sds   <- sapply(desc_data, sd, na.rm = TRUE)
 
-# ------------------------------------------------------------
-# STEP 3: Compute the correlation matrix
-# ------------------------------------------------------------
-# use = "pairwise.complete.obs" means each correlation is computed
-# using all cases that have data on that specific pair of variables.
-
+# Computing the correlation matrix: use = "pairwise.complete.obs" means each correlation is computed using all cases that have data on that specific pair of variables.
 cor_mat <- cor(desc_data, use = "pairwise.complete.obs")
 
-# Create a display version of the correlation matrix where:
+# Creating a display version of the correlation matrix where:
 # - the diagonal is blank
 # - the upper triangle is blank
 # so only the lower triangle remains visible in the final table
-
 cor_display <- cor_mat
 cor_display[upper.tri(cor_display, diag = TRUE)] <- NA
 
-# ------------------------------------------------------------
-# STEP 4: Build the table data frame
-# ------------------------------------------------------------
-# This starts the table with:
+
+# Now that we have both parts of the table, we can build the table data frame. This starts the table with:
 # - Variable name
 # - Mean
 # - SD
 
-table_df <- data.frame(
-  Variable = names(desc_data),
+table_df <- data.frame(Variable = names(desc_data),
   Mean = round(means, 2),
   SD = round(sds, 2),
-  check.names = FALSE
-)
-# round(..., 2) rounds values to 2 decimal places.
-# check.names = FALSE keeps column names exactly as written.
+  check.names = FALSE)
+# the round(..., 2) command rounds values to 2 decimal places. The check.names = FALSE keeps column names exactly as written.
 
-# Add numbering to the variable names so the correlation columns
-# can be matched to the numbered variable list.
 
+# Adding numbers to the variable names so the correlation columns can be matched to the numbered variable list.
 table_df <- table_df %>%
-  mutate(
-    Variable = paste0(seq_along(Variable), ". ", Variable)
-  )
+  mutate(Variable = paste0(seq_along(Variable), ". ", Variable))
 
-# Add one correlation column at a time.
-# The columns are named 1, 2, 3, etc. to match the numbered variable list.
+# Adding one correlation column at a time. The columns are named 1, 2, 3, etc. to match the numbered variable list.
+for (i in seq_len(ncol(cor_display))) {table_df[[as.character(i)]] <- round(cor_display[, i], 2)}
 
-for (i in seq_len(ncol(cor_display))) {
-  table_df[[as.character(i)]] <- round(cor_display[, i], 2)
-}
-
-# Replace all NA values with blank cells for cleaner table display.
-# This removes the visible NAs in the upper triangle and diagonal.
-
+# Replacing all NA values with blank cells for cleaner table display. This removes the visible NAs in the upper triangle and diagonal.
 table_df[is.na(table_df)] <- ""
 
-# ------------------------------------------------------------
-# STEP 5: Create the formatted gt table
-# ------------------------------------------------------------
 
+# Putting everything together and creating the formatted gt table
 desc_gt <- table_df %>%
   gt() %>%
-  # Convert the data frame into a gt table
+  # Converting the data frame into a gt table
 
-  tab_header(
-    title = md("**Descriptive Statistics and Correlations**")
-  ) %>%
-  # Add a bold title using markdown
+  tab_header(title = md("**Descriptive Statistics and Correlations**")) %>%
+  # Adding a title and bolding it using markdown syntax
 
-  cols_label(
-    Variable = "Variable",
+  cols_label(Variable = "Variable",
     Mean = "M",
-    SD = "SD"
-  ) %>%
-  # Rename displayed column headers.
-  # Correlation columns keep their numbered labels automatically.
+    SD = "SD") %>%
+  # Renaming displayed column headers. Correlation columns keep their numbered labels automatically.
 
-  opt_table_font(
-    font = list(
-      "Times New Roman",
-      "Times",
-      "Liberation Serif",
-      "Nimbus Roman",
-      "serif"
-    )
-  ) %>%
-  # Set a serif font stack so the table looks close to Times New Roman
+  opt_table_font(font = list("Times New Roman", "Times")) %>%
+  # Setting the font to times new roman or times.
 
-  cols_align(
-    align = "left",
-    columns = Variable
-  ) %>%
-  # Left-align the variable names
+  cols_align(align = "left",
+    columns = Variable) %>%
+  # Left-aligning the variable names
 
-  cols_align(
-    align = "center",
-    columns = -Variable
-  ) %>%
-  # Center-align all other columns (M, SD, and correlations)
+  cols_align(align = "center",
+    columns = -Variable) %>%
+  # Center-aligning all other columns (M, SD, and correlations)
 
-  cols_width(
-    Variable ~ px(320),
+  cols_width(Variable ~ px(320),
     Mean ~ px(70),
-    SD ~ px(70)
-  ) %>%
-  # Set column widths.
-  # This makes the variable-name column wide enough for long labels,
-  # while keeping Mean and SD narrow.
+    SD ~ px(70)) %>%
+  # Setting column widths. This makes the variable-name column wide enough for long labels, while keeping Mean and SD narrow.
 
-  tab_options(
-    table.font.size = px(14),
+  tab_options(table.font.size = px(14),
     heading.title.font.size = px(16),
     data_row.padding = px(4),
     table.border.top.width = px(1.5),
     table.border.bottom.width = px(1.5),
     heading.border.bottom.width = px(1),
-    table_body.border.bottom.width = px(1)
-  )
-  # Control font size, title size, row spacing, and table borders
-  # to make the table look cleaner and more journal-style
+    table_body.border.bottom.width = px(1))
+  # Controlling font size, title size, row spacing, and table borders to make the table look cleaner.
 
-# ------------------------------------------------------------
-# STEP 6: Print the final table
-# ------------------------------------------------------------
-
+# Printing the final table
 desc_gt
-# Display the finished gt table
+
 ```
 
 
@@ -670,6 +609,8 @@ Model 1: Predicting Mean Fit
 MeanFit_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
 
 ```{r}
+
+# Model 1 
 model1 <- lm(avg_Sess_Fit ~ baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model1)
 
@@ -680,8 +621,202 @@ Model 2: Predicting Mean Tailoring
 MeanTailoring_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
 
 ```{r}
+
+# Model 2
 model2 <- lm(avg_Sess_Tail ~ baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model2)
+```
+
+
+```{r}
+# Output table: Models 1 and 2
+
+# -----------------------------
+# Helper for APA-style p values
+# -----------------------------
+fmt_p <- function(p) {
+  ifelse(p < .001, "< .001", sprintf("%.3f", p))
+}
+
+# -----------------------------
+# Clean predictor labels
+# -----------------------------
+term_labels <- c(
+  "(Intercept)" = "Intercept",
+  "baseline_anxiety" = "Baseline anxiety severity",
+  "behavior_problems_ext" = "Externalizing behavior problems",
+  "behavior_problems_att" = "Attention behavior problems",
+  "ACEQ_Tot_pool_B" = "ACEs total score",
+  "caregiver_complexity" = "Caregiver complexity",
+  "PABUover_C_B" = "Caregiver accommodation",
+  "Educ3_C" = "Caregiver education",
+  "InsecurityStatus_Pool" = "Resource instability",
+  "Male_Y_pool" = "Male",
+  "AgeGrp_0" = "Age group",
+  "Lang_0" = "Spanish language",
+  "Black_Y_pool" = "Black",
+  "Hisp_Y_pool" = "Hispanic",
+  "Site1" = "Baltimore",
+  "Site2" = "Boston",
+  "Site3" = "Miami"
+)
+
+# -----------------------------
+# Tidy each model
+# -----------------------------
+model1_tidy <- tidy(model1) %>%
+  mutate(
+    term = recode(term, !!!term_labels),
+    Estimate_1 = round(estimate, 2),
+    SE_1 = round(std.error, 2),
+    t_1 = round(statistic, 2),
+    p_1 = fmt_p(p.value)
+  ) %>%
+  select(term, Estimate_1, SE_1, t_1, p_1)
+
+model2_tidy <- tidy(model2) %>%
+  mutate(
+    term = recode(term, !!!term_labels),
+    Estimate_2 = round(estimate, 2),
+    SE_2 = round(std.error, 2),
+    t_2 = round(statistic, 2),
+    p_2 = fmt_p(p.value)
+  ) %>%
+  select(term, Estimate_2, SE_2, t_2, p_2)
+
+# -----------------------------
+# Model-level fit statistics
+# -----------------------------
+model1_glance <- glance(model1)
+model2_glance <- glance(model2)
+
+fit_rows <- tibble(
+  term = c("R²", "Adjusted R²", "F statistic"),
+  Estimate_1 = c(
+    round(model1_glance$r.squared, 2),
+    round(model1_glance$adj.r.squared, 2),
+    round(model1_glance$statistic, 2)
+  ),
+  SE_1 = c(NA_real_, NA_real_, NA_real_),
+  t_1 = c(NA_real_, NA_real_, NA_real_),
+  p_1 = c(NA_character_, NA_character_, fmt_p(model1_glance$p.value)),
+  Estimate_2 = c(
+    round(model2_glance$r.squared, 2),
+    round(model2_glance$adj.r.squared, 2),
+    round(model2_glance$statistic, 2)
+  ),
+  SE_2 = c(NA_real_, NA_real_, NA_real_),
+  t_2 = c(NA_real_, NA_real_, NA_real_),
+  p_2 = c(NA_character_, NA_character_, fmt_p(model2_glance$p.value))
+)
+
+# -----------------------------
+# Combine everything
+# -----------------------------
+results_table <- full_join(model1_tidy, model2_tidy, by = "term") %>%
+  bind_rows(fit_rows)
+
+# Put rows in the order you want
+row_order <- c(
+  "Intercept",
+  "Baseline anxiety severity",
+  "Externalizing behavior problems",
+  "Attention behavior problems",
+  "ACEs total score",
+  "Caregiver complexity",
+  "Caregiver accommodation",
+  "Caregiver education",
+  "Resource instability",
+  "Male",
+  "Age group",
+  "Spanish language",
+  "Black",
+  "Hispanic",
+  "Baltimore",
+  "Boston",
+  "Miami",
+  "R²",
+  "Adjusted R²",
+  "F statistic"
+)
+
+results_table <- results_table %>%
+  mutate(term = factor(term, levels = row_order)) %>%
+  arrange(term) %>%
+  mutate(term = as.character(term))
+
+# -----------------------------
+# Make gt table
+# -----------------------------
+reg_gt <- results_table %>%
+  gt(rowname_col = "term") %>%
+  tab_header(
+    title = md("**Table 2. Main Model Results**")
+  ) %>%
+  tab_spanner(
+    label = "Model 1: Predicting Mean Fit",
+    columns = c(Estimate_1, SE_1, t_1, p_1)
+  ) %>%
+  tab_spanner(
+    label = "Model 2: Predicting Mean Tailoring",
+    columns = c(Estimate_2, SE_2, t_2, p_2)
+  ) %>%
+  cols_label(
+    Estimate_1 = "Estimate",
+    SE_1 = "SE",
+    t_1 = "t(92)",
+    p_1 = md("*p*"),
+    Estimate_2 = "Estimate",
+    SE_2 = "SE",
+    t_2 = "t(92)",
+    p_2 = md("*p*")
+  ) %>%
+  fmt_number(
+    columns = c(Estimate_1, SE_1, t_1, Estimate_2, SE_2, t_2),
+    decimals = 2
+  ) %>%
+  fmt_missing(
+    columns = everything(),
+    missing_text = ""
+  ) %>%
+  opt_table_font(
+    font = list(
+      "Times New Roman",
+      "Times",
+      "Liberation Serif",
+      "Nimbus Roman",
+      "serif"
+    )
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = stub()
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  cols_width(
+    stub() ~ px(260),
+    everything() ~ px(90)
+  ) %>%
+  tab_source_note(
+    source_note = md(
+      "*Note.* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Model 1 outcome = average session fit; Model 2 outcome = average session tailoring."
+    )
+  ) %>%
+  tab_options(
+    table.font.size = px(13),
+    heading.title.font.size = px(15),
+    data_row.padding = px(4),
+    table.border.top.width = px(1.5),
+    table.border.bottom.width = px(1.5),
+    heading.border.bottom.width = px(1),
+    table_body.border.bottom.width = px(1)
+  )
+
+reg_gt
+
 ```
 
 
@@ -691,14 +826,23 @@ Model 3: Predicting Anxiety Outcome
 PostAnxiety_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
 
 ```{r}
+
+# Model 3: includes both flexibility variables
 model3 <- lm(post_anxiety ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model3)
 
+# Model 3a: includes only fit
 model3a <- lm(post_anxiety ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model3a)
 
+# Model 3b: includes only tailoring
 model3b <- lm(post_anxiety ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model3b)
+
+# Model 3 Quadratic: with only tailoring
+model3b_quad <- lm(post_anxiety ~ avg_Sess_Tail + I(avg_Sess_Tail^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att + ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, data = cbt_kff_joined_latent)
+
+summary(model3b_quad)
 
 ```
 
