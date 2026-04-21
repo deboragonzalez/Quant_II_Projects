@@ -433,7 +433,7 @@ demo_gt <- demo_table_data %>%
     `n (%)` = "n (%)") %>%
   # Setting the displayed column labels. Category column gets a blank header for a cleaner look.
   tab_header(
-    title = md("**Therapist-Led CBT Sample Demographics**")) %>%
+    title = md("**Table 1: Therapist-Led CBT Sample Demographics**")) %>%
   # Adding a table title and bolding it.
   tab_source_note(source_note = md("*Note.* Participants could select multiple race/ethnicity categories, so race/ethnicity categories were counted independently. Percentages in this section may not sum to 100%.")) %>%
   # Adding the explanatory note under the table for the race/ethnicity variable design.
@@ -564,7 +564,7 @@ desc_gt <- table_df %>%
   gt() %>%
   # Converting the data frame into a gt table
 
-  tab_header(title = md("**Descriptive Statistics and Correlations**")) %>%
+  tab_header(title = md("**Table 2: Descriptive Statistics and Correlations**")) %>%
   # Adding a title and bolding it using markdown syntax
 
   cols_label(Variable = "Variable",
@@ -606,7 +606,6 @@ desc_gt
 Second, it tests whether baseline child clinical characteristics, caregiver clinical complexity, and demographic factors predict these fit and tailoring indices. 
 
 Model 1: Predicting Mean Fit
-MeanFit_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
 
 ```{r}
 
@@ -751,7 +750,7 @@ results_table <- results_table %>%
 reg_gt <- results_table %>%
   gt(rowname_col = "term") %>%
   tab_header(
-    title = md("**Table 2. Main Model Results**")
+    title = md("**Table 3: Predictor Model Results**")
   ) %>%
   tab_spanner(
     label = "Model 1: Predicting Mean Fit",
@@ -769,6 +768,227 @@ reg_gt <- results_table %>%
     Estimate_2 = "Estimate",
     SE_2 = "SE",
     t_2 = "t(92)",
+    p_2 = md("*p*")
+  ) %>%
+  fmt_number(
+    columns = c(Estimate_1, SE_1, t_1, Estimate_2, SE_2, t_2),
+    decimals = 2
+  ) %>%
+  fmt_missing(
+    columns = everything(),
+    missing_text = ""
+  ) %>%
+  opt_table_font(
+    font = list("Times New Roman", "Times")
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = stub()
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  cols_width(
+    stub() ~ px(260),
+    everything() ~ px(90)
+  ) %>%
+  tab_source_note(
+    source_note = md(
+      "*Note.* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Model 1 outcome = average session fit; Model 2 outcome = average session tailoring."
+    )
+  ) %>%
+  tab_options(
+    table.font.size = px(13),
+    heading.title.font.size = px(15),
+    data_row.padding = px(4),
+    table.border.top.width = px(1.5),
+    table.border.bottom.width = px(1.5),
+    heading.border.bottom.width = px(1),
+    table_body.border.bottom.width = px(1))
+
+reg_gt
+
+```
+
+
+Third, it tests whether average fit and average tailoring predict anxiety response outcome and treatment satisfaction (for caregiver and child). 
+
+Model 3: Predicting Anxiety Outcome
+
+```{r}
+
+# Model 3: includes both flexibility variables
+model3 <- lm(post_anxiety ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model3)
+
+# Model 3a: includes only fit
+model3a <- lm(post_anxiety ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model3a)
+
+# Model 3b: includes only tailoring
+model3b <- lm(post_anxiety ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+summary(model3b)
+
+# Model 3c Quadratic: with only fit
+model3c <- lm(post_anxiety ~ avg_Sess_Fit + I(avg_Sess_Fit^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att + ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, data = cbt_kff_joined_latent)
+
+summary(model3c)
+
+# Model 3d Quadratic: with only tailoring
+model3d <- lm(post_anxiety ~ avg_Sess_Tail + I(avg_Sess_Tail^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att + ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, data = cbt_kff_joined_latent)
+
+summary(model3d)
+
+```
+
+```{r}
+# Table for Models 3a and 3b
+
+# Helper for APA-style p values
+
+fmt_p <- function(p) {
+  ifelse(p < .001, "< .001", sprintf("%.3f", p))}
+
+
+# Clean predictor labels
+term_labels <- c(
+  "(Intercept)" = "Intercept",
+  "avg_Sess_Fit" = "Average session fit",
+  "avg_Sess_Tail" = "Average session tailoring",
+  "baseline_anxiety" = "Baseline anxiety severity",
+  "behavior_problems_ext" = "Externalizing behavior problems",
+  "behavior_problems_att" = "Attention behavior problems",
+  "ACEQ_Tot_pool_B" = "ACEs total score",
+  "caregiver_complexity" = "Caregiver complexity",
+  "PABUover_C_B" = "Caregiver accommodation",
+  "Educ3_C" = "Caregiver education",
+  "InsecurityStatus_Pool" = "Resource instability",
+  "Male_Y_pool" = "Male",
+  "AgeGrp_0" = "Age group",
+  "Lang_0" = "Spanish language",
+  "Black_Y_pool" = "Black",
+  "Hisp_Y_pool" = "Hispanic",
+  "Site1" = "Baltimore",
+  "Site2" = "Boston",
+  "Site3" = "Miami"
+)
+
+# -----------------------------
+# Tidy each model
+# Replace model3a_fit and model3b_tail with your actual object names if needed
+# -----------------------------
+model_fit_tidy <- tidy(model3a) %>%
+  mutate(
+    term = recode(term, !!!term_labels),
+    Estimate_1 = round(estimate, 2),
+    SE_1 = round(std.error, 2),
+    t_1 = round(statistic, 2),
+    p_1_raw = p.value,
+    p_1 = fmt_p(p.value)
+  ) %>%
+  select(term, Estimate_1, SE_1, t_1, p_1, p_1_raw)
+
+model_tail_tidy <- tidy(model3b) %>%
+  mutate(
+    term = recode(term, !!!term_labels),
+    Estimate_2 = round(estimate, 2),
+    SE_2 = round(std.error, 2),
+    t_2 = round(statistic, 2),
+    p_2_raw = p.value,
+    p_2 = fmt_p(p.value)
+  ) %>%
+  select(term, Estimate_2, SE_2, t_2, p_2, p_2_raw)
+
+# -----------------------------
+# Model-level fit statistics
+# -----------------------------
+model_fit_glance <- glance(model3a)
+model_tail_glance <- glance(model3b)
+
+fit_rows <- tibble(
+  term = c("R²", "Adjusted R²", "F statistic"),
+  Estimate_1 = c(
+    round(model_fit_glance$r.squared, 2),
+    round(model_fit_glance$adj.r.squared, 2),
+    round(model_fit_glance$statistic, 2)
+  ),
+  SE_1 = c(NA_real_, NA_real_, NA_real_),
+  t_1 = c(NA_real_, NA_real_, NA_real_),
+  p_1 = c(NA_character_, NA_character_, fmt_p(model_fit_glance$p.value)),
+  p_1_raw = c(NA_real_, NA_real_, model_fit_glance$p.value),
+  Estimate_2 = c(
+    round(model_tail_glance$r.squared, 2),
+    round(model_tail_glance$adj.r.squared, 2),
+    round(model_tail_glance$statistic, 2)
+  ),
+  SE_2 = c(NA_real_, NA_real_, NA_real_),
+  t_2 = c(NA_real_, NA_real_, NA_real_),
+  p_2 = c(NA_character_, NA_character_, fmt_p(model_tail_glance$p.value)),
+  p_2_raw = c(NA_real_, NA_real_, model_tail_glance$p.value)
+)
+
+# -----------------------------
+# Combine everything
+# -----------------------------
+results_table <- full_join(model_fit_tidy, model_tail_tidy, by = "term") %>%
+  bind_rows(fit_rows)
+
+# Put rows in the order you want
+row_order <- c(
+  "Intercept",
+  "Average session fit",
+  "Average session tailoring",
+  "Baseline anxiety severity",
+  "Externalizing behavior problems",
+  "Attention behavior problems",
+  "ACEs total score",
+  "Caregiver complexity",
+  "Caregiver accommodation",
+  "Caregiver education",
+  "Resource instability",
+  "Male",
+  "Age group",
+  "Spanish language",
+  "Black",
+  "Hispanic",
+  "Baltimore",
+  "Boston",
+  "Miami",
+  "R²",
+  "Adjusted R²",
+  "F statistic"
+)
+
+results_table <- results_table %>%
+  mutate(term = factor(term, levels = row_order)) %>%
+  arrange(term) %>%
+  mutate(term = as.character(term))
+
+# -----------------------------
+# Make gt table
+# -----------------------------
+reg_gt <- results_table %>%
+  gt(rowname_col = "term") %>%
+  tab_header(
+    title = md("**Table 4: Predicting Post-treatment Anxiety Severity**")
+  ) %>%
+  tab_spanner(
+    label = "Model 3A: Fit Model",
+    columns = c(Estimate_1, SE_1, t_1, p_1)
+  ) %>%
+  tab_spanner(
+    label = "Model 3B: Tailoring Model",
+    columns = c(Estimate_2, SE_2, t_2, p_2)
+  ) %>%
+  cols_label(
+    Estimate_1 = "Estimate",
+    SE_1 = "SE",
+    t_1 = "t(91)",
+    p_1 = md("*p*"),
+    Estimate_2 = "Estimate",
+    SE_2 = "SE",
+    t_2 = "t(91)",
     p_2 = md("*p*")
   ) %>%
   fmt_number(
@@ -802,9 +1022,24 @@ reg_gt <- results_table %>%
   ) %>%
   tab_source_note(
     source_note = md(
-      "*Note.* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Model 1 outcome = average session fit; Model 2 outcome = average session tailoring."
+      "*Note.* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Outcome = post-treatment anxiety severity. Model A includes average session fit as the focal predictor; Model B includes average session tailoring as the focal predictor."
     )
   ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(
+      columns = p_1,
+      rows = p_1_raw <= 0.05
+    )
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(
+      columns = p_2,
+      rows = p_2_raw <= 0.05
+    )
+  ) %>%
+  cols_hide(columns = c(p_1_raw, p_2_raw)) %>% 
   tab_options(
     table.font.size = px(13),
     heading.title.font.size = px(15),
@@ -816,63 +1051,35 @@ reg_gt <- results_table %>%
   )
 
 reg_gt
-
 ```
 
 
-Third, it tests whether average fit and average tailoring predict anxiety response outcome and treatment satisfaction (for caregiver and child). 
-
-Model 3: Predicting Anxiety Outcome
-PostAnxiety_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
-
-```{r}
-
-# Model 3: includes both flexibility variables
-model3 <- lm(post_anxiety ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
-summary(model3)
-
-# Model 3a: includes only fit
-model3a <- lm(post_anxiety ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
-summary(model3a)
-
-# Model 3b: includes only tailoring
-model3b <- lm(post_anxiety ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
-summary(model3b)
-
-# Model 3 Quadratic: with only tailoring
-model3b_quad <- lm(post_anxiety ~ avg_Sess_Tail + I(avg_Sess_Tail^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att + ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, data = cbt_kff_joined_latent)
-
-summary(model3b_quad)
-
-```
-
+The below models will not be included in the report at this time.
 
 Model 4: Predicting Caregiver Treatment Satisfaction
-CaregiverSatisfaction_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
 
 ```{r}
 model4 <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model4)
 
-model4a <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+model4a <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Fit + I(avg_Sess_Fit^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model4a)
 
-model4b <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+model4b <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Tail + I(avg_Sess_Tail^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model4b)
 ```
 
 
 Model 5: Predicting Youth Treatment Satisfaction
-YouthSatisfaction_i=b_0+b_1 (MeanFit_i)+b_2 (MeanTailoring_i)+b_3 (BaselineAnxiety_i)+b_4 (BehaviorProblems_i)+b_5 (CaregiverComplexity_i)+b_6 (Age_i)+b_7 (Gender_i)+b_8 (CaregiverEducation_i)+e_i
 
 ```{r}
 model5 <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model5)
 
-model5a <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Fit + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+model5a <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Fit + I(avg_Sess_Fit^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model5a)
 
-model5b <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
+model5b <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Tail + I(avg_Sess_Tail^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model5b)
 ```
 
