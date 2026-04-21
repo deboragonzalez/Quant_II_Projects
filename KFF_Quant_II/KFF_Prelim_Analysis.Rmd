@@ -203,8 +203,7 @@ cbt_kff_joined_latent[idx, "ID"]
 # Now that I have my latent variables, I'm going to add some more demographic variables from the original dataset for a descriptive statistics table
 
 race_gender_vars <- kff_data %>%
-  select(
-    ID,
+  select(ID,
     Gender_Y_pool,
     White_Y_pool,
     AmInd_Y_pool,
@@ -219,8 +218,7 @@ cbt_kff_joined_latent <- cbt_kff_joined_latent %>%
 # For this demographics table, given my sample size, I'm creating a summary race variable:
 
 cbt_kff_joined_latent <- cbt_kff_joined_latent %>%
-  mutate(
-    Other_Racial_Groups = if_else(
+  mutate(Other_Racial_Groups = if_else(
       AmInd_Y_pool == 1 |
       Asian_Y_pool == 1 |
       NatHPI_Y_pool == 1 |
@@ -307,8 +305,7 @@ demo_table_data <- cbt_kff_joined_latent %>%
       Site2 == 1 ~ "Boston",
       Site3 == 1 ~ "Miami",
       Site4 == 1 ~ "Seattle",
-      TRUE ~ "No response") # Recoding site indicators into one readable region label. Each person belongs to one site only.
-  ) %>%
+      TRUE ~ "No response")) %>% # Recoding site indicators into one readable region label. Each person belongs to one site only.
   pivot_longer(
     cols = everything(),
     names_to = "Characteristic",
@@ -474,19 +471,22 @@ demo_gt
 # Let's visualize the distribution of mean fit and tailoring across the sample --> histogram
 
 # Histogram for Fit across the sample
-avg_Fit_dist <- ggplot(cbt_kff_joined_latent, aes(x = avg_Sess_Fit)) +
+avg_Fit_dist <- ggplot(cbt_kff_joined_latent, aes(x = avg_Sess_Fit)) + # selecting data
   geom_histogram(bins = 15,
     fill = "lightblue",
     color = "blue") +
+  # adding the labels
   labs(title = "Distribution of Average Session Fit",
     x = "Average Session Fit",
     y = "Frequency") +
+  # choosing a clean theme
   theme_classic(base_size = 14) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+# displaying
 avg_Fit_dist
 
-# Histogram for Tailoring
-avg_tail_dist <- ggplot(cbt_kff_joined_latent, aes(x = avg_Sess_Tail)) +
+# Histogram for Tailoring (using the same code as above)
+avg_tail_dist <- ggplot(cbt_kff_joined_latent, aes(x = avg_Sess_Tail)) + #changing the variable of interest
   geom_histogram(bins = 15,
     fill = "lightgreen",
     color = "darkgreen") +
@@ -506,8 +506,7 @@ avg_tail_dist
 # Selecting the variables for the table and renaming them. This is subset or smaller dataset containing only the variables that we will need in the descriptive statistics / correlation table.
 
 desc_data <- cbt_kff_joined_latent %>%
-  select(
-    `Fit` = avg_Sess_Fit,
+  select(`Fit` = avg_Sess_Fit,
     `Tailoring` = avg_Sess_Tail,
     `Baseline Anxiety Severity` = baseline_anxiety,
     `ACEs Total Score` = ACEQ_Tot_pool_B,
@@ -609,7 +608,7 @@ Model 1: Predicting Mean Fit
 
 ```{r}
 
-# Model 1 
+# Model 1: predicting mean fit
 model1 <- lm(avg_Sess_Fit ~ baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model1)
 
@@ -617,11 +616,10 @@ summary(model1)
 ```
 
 Model 2: Predicting Mean Tailoring
-MeanTailoring_i=b_0+b_1 (BaselineAnxiety_i)+b_2 (BehaviorProblems_i)+b_3 (CaregiverComplexity_i)+b_4 (Age_i)+b_5 (Gender_i)+b_6 (CaregiverEducation_i)+e_i
 
 ```{r}
 
-# Model 2
+# Model 2: Predicting mean tailoring
 model2 <- lm(avg_Sess_Tail ~ baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model2)
 ```
@@ -630,22 +628,15 @@ summary(model2)
 ```{r}
 # Output table: Models 1 and 2
 
-# -----------------------------
-# Helper for APA-style p values
-# -----------------------------
-fmt_p <- function(p) {
-  ifelse(p < .001, "< .001", sprintf("%.3f", p))
-}
+# Creating a helper function for APA-style p values
+fmt_p <- function(p) {ifelse(p < .001, "< .001", sprintf("%.3f", p))}
 
-# -----------------------------
-# Clean predictor labels
-# -----------------------------
-term_labels <- c(
-  "(Intercept)" = "Intercept",
+# Cleaning predictor labels
+term_labels <- c("(Intercept)" = "Intercept",
   "baseline_anxiety" = "Baseline anxiety severity",
   "behavior_problems_ext" = "Externalizing behavior problems",
   "behavior_problems_att" = "Attention behavior problems",
-  "ACEQ_Tot_pool_B" = "ACEs total score",
+  "ACEQ_Tot_pool_B" = "ACEs Total Score",
   "caregiver_complexity" = "Caregiver complexity",
   "PABUover_C_B" = "Caregiver accommodation",
   "Educ3_C" = "Caregiver education",
@@ -657,67 +648,53 @@ term_labels <- c(
   "Hisp_Y_pool" = "Hispanic",
   "Site1" = "Baltimore",
   "Site2" = "Boston",
-  "Site3" = "Miami"
-)
+  "Site3" = "Miami")
 
-# -----------------------------
-# Tidy each model
-# -----------------------------
+# Tidying each model
 model1_tidy <- tidy(model1) %>%
-  mutate(
-    term = recode(term, !!!term_labels),
+  mutate(term = recode(term, !!!term_labels), # adding the labels selected above
     Estimate_1 = round(estimate, 2),
     SE_1 = round(std.error, 2),
     t_1 = round(statistic, 2),
-    p_1 = fmt_p(p.value)
-  ) %>%
-  select(term, Estimate_1, SE_1, t_1, p_1)
+    p_num_1 = p.value,
+    p_1 = fmt_p(p.value)) %>%
+  select(term, Estimate_1, SE_1, t_1, p_num_1, p_1)
 
 model2_tidy <- tidy(model2) %>%
-  mutate(
-    term = recode(term, !!!term_labels),
+  mutate(term = recode(term, !!!term_labels), # adding the labels selected above
     Estimate_2 = round(estimate, 2),
     SE_2 = round(std.error, 2),
     t_2 = round(statistic, 2),
-    p_2 = fmt_p(p.value)
-  ) %>%
-  select(term, Estimate_2, SE_2, t_2, p_2)
+    p_num_2 = p.value,
+    p_2 = fmt_p(p.value)) %>%
+  select(term, Estimate_2, SE_2, t_2, p_num_2, p_2)
 
-# -----------------------------
 # Model-level fit statistics
-# -----------------------------
 model1_glance <- glance(model1)
 model2_glance <- glance(model2)
 
-fit_rows <- tibble(
-  term = c("R²", "Adjusted R²", "F statistic"),
-  Estimate_1 = c(
-    round(model1_glance$r.squared, 2),
+fit_rows <- tibble(term = c("R²", "Adjusted R²", "F statistic"),
+  Estimate_1 = c(round(model1_glance$r.squared, 2),
     round(model1_glance$adj.r.squared, 2),
-    round(model1_glance$statistic, 2)
-  ),
+    round(model1_glance$statistic, 2)),
   SE_1 = c(NA_real_, NA_real_, NA_real_),
   t_1 = c(NA_real_, NA_real_, NA_real_),
+  p_num_1 = c(NA_real_, NA_real_, model1_glance$p.value),
   p_1 = c(NA_character_, NA_character_, fmt_p(model1_glance$p.value)),
-  Estimate_2 = c(
-    round(model2_glance$r.squared, 2),
+  Estimate_2 = c(round(model2_glance$r.squared, 2),
     round(model2_glance$adj.r.squared, 2),
-    round(model2_glance$statistic, 2)
-  ),
+    round(model2_glance$statistic, 2)),
   SE_2 = c(NA_real_, NA_real_, NA_real_),
   t_2 = c(NA_real_, NA_real_, NA_real_),
-  p_2 = c(NA_character_, NA_character_, fmt_p(model2_glance$p.value))
-)
+  p_num_2 = c(NA_real_, NA_real_, model2_glance$p.value),
+  p_2 = c(NA_character_, NA_character_, fmt_p(model2_glance$p.value)))
 
-# -----------------------------
-# Combine everything
-# -----------------------------
+# Combining the models
 results_table <- full_join(model1_tidy, model2_tidy, by = "term") %>%
   bind_rows(fit_rows)
 
-# Put rows in the order you want
-row_order <- c(
-  "Intercept",
+# determining order of variables/rows
+row_order <- c("Intercept",
   "Baseline anxiety severity",
   "Externalizing behavior problems",
   "Attention behavior problems",
@@ -736,70 +713,56 @@ row_order <- c(
   "Miami",
   "R²",
   "Adjusted R²",
-  "F statistic"
-)
+  "F statistic")
 
+# Implementing the row order on the table
 results_table <- results_table %>%
   mutate(term = factor(term, levels = row_order)) %>%
   arrange(term) %>%
   mutate(term = as.character(term))
 
-# -----------------------------
-# Make gt table
-# -----------------------------
+# Making gt table
 reg_gt <- results_table %>%
   gt(rowname_col = "term") %>%
-  tab_header(
-    title = md("**Table 3: Predictor Model Results**")
-  ) %>%
-  tab_spanner(
-    label = "Model 1: Predicting Mean Fit",
-    columns = c(Estimate_1, SE_1, t_1, p_1)
-  ) %>%
-  tab_spanner(
-    label = "Model 2: Predicting Mean Tailoring",
-    columns = c(Estimate_2, SE_2, t_2, p_2)
-  ) %>%
-  cols_label(
-    Estimate_1 = "Estimate",
+  tab_header(title = md("**Table 3: Predictor Model Results**")) %>% # title
+  # Model headers for each part of the table
+  tab_spanner(label = "Model 1: Predicting Mean Fit",
+    columns = c(Estimate_1, SE_1, t_1, p_1)) %>%
+  tab_spanner(label = "Model 2: Predicting Mean Tailoring",
+    columns = c(Estimate_2, SE_2, t_2, p_2)) %>%
+  # Labels for the columns
+  cols_label(Estimate_1 = "Estimate",
     SE_1 = "SE",
     t_1 = "t(92)",
     p_1 = md("*p*"),
     Estimate_2 = "Estimate",
     SE_2 = "SE",
     t_2 = "t(92)",
-    p_2 = md("*p*")
-  ) %>%
-  fmt_number(
-    columns = c(Estimate_1, SE_1, t_1, Estimate_2, SE_2, t_2),
-    decimals = 2
-  ) %>%
-  fmt_missing(
-    columns = everything(),
-    missing_text = ""
-  ) %>%
-  opt_table_font(
-    font = list("Times New Roman", "Times")
-  ) %>%
-  cols_align(
-    align = "left",
-    columns = stub()
-  ) %>%
-  cols_align(
-    align = "center",
-    columns = everything()
-  ) %>%
-  cols_width(
-    stub() ~ px(260),
-    everything() ~ px(90)
-  ) %>%
-  tab_source_note(
-    source_note = md(
-      "*Note.* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Model 1 outcome = average session fit; Model 2 outcome = average session tailoring."
-    )
-  ) %>%
-  tab_options(
-    table.font.size = px(13),
+    p_2 = md("*p*")) %>%
+  fmt_number(columns = c(Estimate_1, SE_1, t_1, Estimate_2, SE_2, t_2), decimals = 2) %>% # determining the columns and how many decimals
+  fmt_missing(columns = everything(), missing_text = "") %>% # how to handle missing text
+  # Making p values less than .05 bold 
+  tab_style(style = cell_text(weight = "bold"),
+    locations = cells_body(
+      columns = p_1,
+      rows = p_num_1 <= 0.05)) %>%
+  tab_style(style = cell_text(weight = "bold"),
+    locations = cells_body(
+      columns = p_2,
+      rows = p_num_2 <= 0.05)) %>%
+  # selecting which columns to show after bolding the p value, the font, and alignment, etc.
+  cols_hide(columns = c(p_num_1, p_num_2)) %>%
+  opt_table_font(font = list("Times New Roman", "Times")) %>%
+  cols_align(align = "left",
+    columns = stub()) %>%
+  cols_align(align = "center",
+    columns = everything()) %>%
+  cols_width(stub() ~ px(260),
+    everything() ~ px(90)) %>%
+  # Adding the note
+  tab_source_note(source_note = md("*Note:* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Model 1 outcome = average session fit. Model 2 outcome = average session tailoring."))%>%
+  # table sizing/formatting
+  tab_options(table.font.size = px(13),
     heading.title.font.size = px(15),
     data_row.padding = px(4),
     table.border.top.width = px(1.5),
@@ -807,6 +770,7 @@ reg_gt <- results_table %>%
     heading.border.bottom.width = px(1),
     table_body.border.bottom.width = px(1))
 
+# Displaying table
 reg_gt
 
 ```
@@ -817,6 +781,7 @@ Third, it tests whether average fit and average tailoring predict anxiety respon
 Model 3: Predicting Anxiety Outcome
 
 ```{r}
+# All anxiety severity outcome models
 
 # Model 3: includes both flexibility variables
 model3 <- lm(post_anxiety ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
@@ -829,6 +794,8 @@ summary(model3a)
 # Model 3b: includes only tailoring
 model3b <- lm(post_anxiety ~ avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model3b)
+
+# The below models will not be included in the report
 
 # Model 3c Quadratic: with only fit
 model3c <- lm(post_anxiety ~ avg_Sess_Fit + I(avg_Sess_Fit^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att + ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, data = cbt_kff_joined_latent)
@@ -845,15 +812,11 @@ summary(model3d)
 ```{r}
 # Table for Models 3a and 3b
 
-# Helper for APA-style p values
-
-fmt_p <- function(p) {
-  ifelse(p < .001, "< .001", sprintf("%.3f", p))}
-
+# Creating a helper function (like in the prior table) for APA-style p values
+fmt_p <- function(p) {ifelse(p < .001, "< .001", sprintf("%.3f", p))}
 
 # Clean predictor labels
-term_labels <- c(
-  "(Intercept)" = "Intercept",
+term_labels <- c("(Intercept)" = "Intercept",
   "avg_Sess_Fit" = "Average session fit",
   "avg_Sess_Tail" = "Average session tailoring",
   "baseline_anxiety" = "Baseline anxiety severity",
@@ -871,78 +834,61 @@ term_labels <- c(
   "Hisp_Y_pool" = "Hispanic",
   "Site1" = "Baltimore",
   "Site2" = "Boston",
-  "Site3" = "Miami"
-)
+  "Site3" = "Miami")
 
-# -----------------------------
-# Tidy each model
-# Replace model3a_fit and model3b_tail with your actual object names if needed
-# -----------------------------
+
+# Tidying each model: replacing model3a_fit and model3b_tail with the actual object names 
 model_fit_tidy <- tidy(model3a) %>%
-  mutate(
-    term = recode(term, !!!term_labels),
+  mutate(term = recode(term, !!!term_labels), # adding the term labels
     Estimate_1 = round(estimate, 2),
     SE_1 = round(std.error, 2),
     t_1 = round(statistic, 2),
     p_1_raw = p.value,
-    p_1 = fmt_p(p.value)
-  ) %>%
+    p_1 = fmt_p(p.value)) %>%
   select(term, Estimate_1, SE_1, t_1, p_1, p_1_raw)
 
 model_tail_tidy <- tidy(model3b) %>%
-  mutate(
-    term = recode(term, !!!term_labels),
+  mutate(term = recode(term, !!!term_labels), # adding the term labels
     Estimate_2 = round(estimate, 2),
     SE_2 = round(std.error, 2),
     t_2 = round(statistic, 2),
     p_2_raw = p.value,
-    p_2 = fmt_p(p.value)
-  ) %>%
+    p_2 = fmt_p(p.value)) %>%
   select(term, Estimate_2, SE_2, t_2, p_2, p_2_raw)
 
-# -----------------------------
 # Model-level fit statistics
-# -----------------------------
+
 model_fit_glance <- glance(model3a)
 model_tail_glance <- glance(model3b)
 
-fit_rows <- tibble(
-  term = c("R²", "Adjusted R²", "F statistic"),
-  Estimate_1 = c(
-    round(model_fit_glance$r.squared, 2),
+fit_rows <- tibble(term = c("R²", "Adjusted R²", "F statistic"),
+  Estimate_1 = c(round(model_fit_glance$r.squared, 2),
     round(model_fit_glance$adj.r.squared, 2),
-    round(model_fit_glance$statistic, 2)
-  ),
+    round(model_fit_glance$statistic, 2)),
   SE_1 = c(NA_real_, NA_real_, NA_real_),
   t_1 = c(NA_real_, NA_real_, NA_real_),
   p_1 = c(NA_character_, NA_character_, fmt_p(model_fit_glance$p.value)),
   p_1_raw = c(NA_real_, NA_real_, model_fit_glance$p.value),
-  Estimate_2 = c(
-    round(model_tail_glance$r.squared, 2),
+  Estimate_2 = c(round(model_tail_glance$r.squared, 2),
     round(model_tail_glance$adj.r.squared, 2),
-    round(model_tail_glance$statistic, 2)
-  ),
+    round(model_tail_glance$statistic, 2)),
   SE_2 = c(NA_real_, NA_real_, NA_real_),
   t_2 = c(NA_real_, NA_real_, NA_real_),
   p_2 = c(NA_character_, NA_character_, fmt_p(model_tail_glance$p.value)),
-  p_2_raw = c(NA_real_, NA_real_, model_tail_glance$p.value)
-)
+  p_2_raw = c(NA_real_, NA_real_, model_tail_glance$p.value))
 
-# -----------------------------
-# Combine everything
-# -----------------------------
+# Putting both models together
 results_table <- full_join(model_fit_tidy, model_tail_tidy, by = "term") %>%
   bind_rows(fit_rows)
 
-# Put rows in the order you want
-row_order <- c(
-  "Intercept",
+# Putting rows in the order we want
+row_order <- c("Intercept",
   "Average session fit",
   "Average session tailoring",
   "Baseline anxiety severity",
   "Externalizing behavior problems",
   "Attention behavior problems",
-  "ACEs total score",
+  "ACEs Total Score",
   "Caregiver complexity",
   "Caregiver accommodation",
   "Caregiver education",
@@ -957,99 +903,69 @@ row_order <- c(
   "Miami",
   "R²",
   "Adjusted R²",
-  "F statistic"
-)
+  "F statistic")
 
+# this is how we integrate the order determined above into the actual table.
 results_table <- results_table %>%
   mutate(term = factor(term, levels = row_order)) %>%
   arrange(term) %>%
   mutate(term = as.character(term))
 
-# -----------------------------
-# Make gt table
-# -----------------------------
+
+# Making the gt table
+
 reg_gt <- results_table %>%
   gt(rowname_col = "term") %>%
-  tab_header(
-    title = md("**Table 4: Predicting Post-treatment Anxiety Severity**")
-  ) %>%
+  # Title of the table
+  tab_header(title = md("**Table 4: Predicting Post-treatment Anxiety Severity**")) %>%
+  # Labeling the model tabs within the table
   tab_spanner(
-    label = "Model 3A: Fit Model",
-    columns = c(Estimate_1, SE_1, t_1, p_1)
-  ) %>%
-  tab_spanner(
-    label = "Model 3B: Tailoring Model",
-    columns = c(Estimate_2, SE_2, t_2, p_2)
-  ) %>%
-  cols_label(
-    Estimate_1 = "Estimate",
+    label = "Model 3A: Treatment Fit Model",
+    columns = c(Estimate_1, SE_1, t_1, p_1)) %>%
+  tab_spanner(label = "Model 3B: Treatment Tailoring Model",
+    columns = c(Estimate_2, SE_2, t_2, p_2)) %>%
+  # Labels for the columns
+  cols_label(Estimate_1 = "Estimate",
     SE_1 = "SE",
     t_1 = "t(91)",
     p_1 = md("*p*"),
     Estimate_2 = "Estimate",
     SE_2 = "SE",
     t_2 = "t(91)",
-    p_2 = md("*p*")
-  ) %>%
-  fmt_number(
-    columns = c(Estimate_1, SE_1, t_1, Estimate_2, SE_2, t_2),
-    decimals = 2
-  ) %>%
-  fmt_missing(
-    columns = everything(),
-    missing_text = ""
-  ) %>%
-  opt_table_font(
-    font = list(
-      "Times New Roman",
-      "Times",
-      "Liberation Serif",
-      "Nimbus Roman",
-      "serif"
-    )
-  ) %>%
-  cols_align(
-    align = "left",
-    columns = stub()
-  ) %>%
-  cols_align(
-    align = "center",
-    columns = everything()
-  ) %>%
-  cols_width(
-    stub() ~ px(260),
-    everything() ~ px(90)
-  ) %>%
-  tab_source_note(
-    source_note = md(
-      "*Note.* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Outcome = post-treatment anxiety severity. Model A includes average session fit as the focal predictor; Model B includes average session tailoring as the focal predictor."
-    )
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold"),
+    p_2 = md("*p*")) %>%
+  fmt_number(columns = c(Estimate_1, SE_1, t_1, Estimate_2, SE_2, t_2), decimals = 2) %>%
+  fmt_missing(columns = everything(), missing_text = "") %>%
+ # choosing font
+   opt_table_font(font = list("Times New Roman", "Times")) %>%
+  # alignment
+  cols_align(align = "left",
+    columns = stub()) %>%
+  cols_align(align = "center",
+    columns = everything()) %>%
+  # width
+  cols_width(stub() ~ px(260),
+    everything() ~ px(90)) %>%
+  tab_source_note(source_note = md("*Note:* Entries are unstandardized regression coefficients, standard errors, t statistics, and exact p values. R² = proportion of variance explained by the model. Both models were estimated with listwise deletion in `lm()`. Outcome = post-treatment anxiety severity. Model 3A includes average session fit as the focal predictor. Model 3B includes average session tailoring as the focal predictor.")) %>%
+  # Getting significant p-values bolded.
+  tab_style(style = cell_text(weight = "bold"),
     locations = cells_body(
       columns = p_1,
-      rows = p_1_raw <= 0.05
-    )
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold"),
+      rows = p_1_raw <= 0.05)) %>%
+  tab_style(style = cell_text(weight = "bold"),
     locations = cells_body(
       columns = p_2,
-      rows = p_2_raw <= 0.05
-    )
-  ) %>%
+      rows = p_2_raw <= 0.05)) %>%
   cols_hide(columns = c(p_1_raw, p_2_raw)) %>% 
-  tab_options(
-    table.font.size = px(13),
+  # final formatting for table (size)
+  tab_options(table.font.size = px(13),
     heading.title.font.size = px(15),
     data_row.padding = px(4),
     table.border.top.width = px(1.5),
     table.border.bottom.width = px(1.5),
     heading.border.bottom.width = px(1),
-    table_body.border.bottom.width = px(1)
-  )
+    table_body.border.bottom.width = px(1))
 
+# displaying the table
 reg_gt
 ```
 
@@ -1059,12 +975,20 @@ The below models will not be included in the report at this time.
 Model 4: Predicting Caregiver Treatment Satisfaction
 
 ```{r}
+
+# Building different versions of model 4
+
+# Fit and tailoring in the same model
 model4 <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model4)
 
+
+# Only fit model (including quadraatic term)
 model4a <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Fit + I(avg_Sess_Fit^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model4a)
 
+
+# Only tailoring model (including quadraatic term)
 model4b <- lm(SATQ_Mean_C_P_0 ~ avg_Sess_Tail + I(avg_Sess_Tail^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model4b)
 ```
@@ -1073,12 +997,18 @@ summary(model4b)
 Model 5: Predicting Youth Treatment Satisfaction
 
 ```{r}
+
+# Building different versions of model 5
+
+# Fit and tailoring in the same model
 model5 <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Fit + avg_Sess_Tail + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model5)
 
+# Only fit model (including quadraatic term)
 model5a <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Fit + I(avg_Sess_Fit^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model5a)
 
+# Only tailoring model (including quadraatic term)
 model5b <- lm(SATQ_Mean_Y_P_0 ~ avg_Sess_Tail + I(avg_Sess_Tail^2) + baseline_anxiety + behavior_problems_ext + behavior_problems_att +  ACEQ_Tot_pool_B + caregiver_complexity + PABUover_C_B + Educ3_C + InsecurityStatus_Pool + Male_Y_pool + AgeGrp_0 + Lang_0 + Black_Y_pool + Hisp_Y_pool + Site1 + Site2 + Site3, cbt_kff_joined_latent)
 summary(model5b)
 ```
