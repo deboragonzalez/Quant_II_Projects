@@ -1,11 +1,11 @@
 ---
-title: "KFF Preliminary Analysis"
+title: "KFF Background Code and Preliminary Analysis"
 author: "Debi Gonzalez"
 date: "2026-04-14"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
 
 library(haven) # read in sav files
@@ -17,6 +17,7 @@ library(dplyr) # for my flexibility variables and later tables (data wrangling)
 library(gt) # for formatting my beautiful tables :)
 library(tibble) # another library for tables that lets us manually build small data frames
 library(broom) # to transform model output into tidy data frames (i.e. extract the regression coefficients, standard errors, t values, and p values)
+library(webshot2) # for exporting my tables as pngs
 ```
 
 ```{r}
@@ -125,8 +126,7 @@ latent_model1 <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
   caregiver_complexity =~ PABUover_C_B + DASSd_C_B + DASSa_C_B + DASSs_C_B
   post_anxiety =~ PROMt_C_P + PROMt_Y_P + PARS_Tot_P'
 
-fit1 <- cfa(
-  latent_model1,
+fit1 <- cfa(latent_model1,
   data = cbt_kff_joined,
   missing = "fiml", # telling my model to use full-information maximum likelihood to handle missing data, instead of the default listwise deletion; it is not creating imputed values you can inspect in the dataset
   std.lv = TRUE) # telling lavaan to fix each latent variable’s variance to 1 so the factor is put on a standardized scale.
@@ -142,8 +142,7 @@ latent_model2 <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
   post_anxiety =~ PROMt_C_P + PROMt_Y_P + PARS_Tot_P'
 # The main change is removing caregiver accomodation measure from the caregiver complexity latent variable as it barely loads on the factor and it's positive while the other three DASS variables are negative.
 
-fit2 <- cfa(
-  latent_model2,
+fit2 <- cfa(latent_model2,
   data = cbt_kff_joined,
   missing = "fiml", # telling my model to use full-information maximum likelihood to handle missing data, instead of the default listwise deletion; it is not creating imputed values you can inspect in the dataset
   std.lv = TRUE) # telling lavaan to fix each latent variable’s variance to 1 so the factor is put on a standardized scale.
@@ -159,7 +158,7 @@ summary(fit2, fit.measures = TRUE, standardized = TRUE)
   # RMSEA improved a little from 0.090 to 0.085
 
 
-# Let's try one more time creating two constructs of behavior problems: one for attention and one for externalizing problems.
+# Based on prior results, this time I'm creating two constructs of behavior problems: one for attention and one for externalizing problems.
 
 latent_model3 <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
   behavior_problems_ext =~ PSC_Ext_Y_B + PSC_Ext_C_B
@@ -168,8 +167,7 @@ latent_model3 <- 'baseline_anxiety =~ PROMt_C_B + PROMt_Y_B + PARS_Tot_B
   post_anxiety =~ PROMt_C_P + PROMt_Y_P + PARS_Tot_P'
 # The main change is removing caregiver accomodation measure from the caregiver complexity latent variable as it barely loads on the factor and it's positive while the other three DASS variables are negative.
 
-fit3 <- cfa(
-  latent_model3,
+fit3 <- cfa(latent_model3,
   data = cbt_kff_joined,
   missing = "fiml", # telling my model to use full-information maximum likelihood to handle missing data, instead of the default listwise deletion; it is not creating imputed values you can inspect in the dataset
   std.lv = TRUE) # telling lavaan to fix each latent variable’s variance to 1 so the factor is put on a standardized scale.
@@ -263,21 +261,18 @@ demo_table_data <- cbt_kff_joined_latent %>%
   transmute(
     # transmute() creates a new data frame using only the variables listed here. It drops everything else, so we can have a clean dataframe for the table.
 
-    `Caregiver Education` = case_when(
-      Educ3_C == 1 ~ "High School or Less",
+    `Caregiver Education` = case_when(Educ3_C == 1 ~ "High School or Less",
       Educ3_C == 2 ~ "Completed College",
       Educ3_C == 3 ~ "Completed Graduate School",
       TRUE ~ "No response"),
     # Recoding Educ3_C into readable category labels. Any value not equal to 1, 2, or 3 becomes "No response".
 
-    `Resource Instability` = case_when(
-      InsecurityStatus_Pool == 0 ~ "Did not endorse housing/resource insecurity",
+    `Resource Instability` = case_when(InsecurityStatus_Pool == 0 ~ "Did not endorse housing/resource insecurity",
       InsecurityStatus_Pool == 1 ~ "Endorsed housing/resource insecurity",
       TRUE ~ "No response"),
     # Recoding binary insecurity variable into readable labels.
 
-    `Sex/Gender` = case_when(
-      Gender_Y_pool == 1 ~ "Male",
+    `Sex/Gender` = case_when(Gender_Y_pool == 1 ~ "Male",
       Gender_Y_pool == 2 ~ "Female",
       Gender_Y_pool == 3 ~ "Non-binary",
       Gender_Y_pool == 4 ~ "Gender fluid",
@@ -288,20 +283,17 @@ demo_table_data <- cbt_kff_joined_latent %>%
       TRUE ~ "No response"),
     # Recoding gender variable into readable categories.
 
-    `Age Group` = case_when(
-      AgeGrp_0 == 0 ~ "7-12 years",
+    `Age Group` = case_when(AgeGrp_0 == 0 ~ "7-12 years",
       AgeGrp_0 == 1 ~ "13+ years",
       TRUE ~ "No response"),
     # Recoding age group into readable labels.
 
-    `Language` = case_when(
-      Lang_0 == 0 ~ "English",
+    `Language` = case_when(Lang_0 == 0 ~ "English",
       Lang_0 == 1 ~ "Spanish",
       TRUE ~ "No response"),
     # Recoding language variable into readable labels.
 
-    `Region` = case_when(
-      Site1 == 1 ~ "Baltimore",
+    `Region` = case_when(Site1 == 1 ~ "Baltimore",
       Site2 == 1 ~ "Boston",
       Site3 == 1 ~ "Miami",
       Site4 == 1 ~ "Seattle",
@@ -326,34 +318,28 @@ demo_table_data <- cbt_kff_joined_latent %>%
 # Building the race/ethnicity separately as a multi-response section. Each indicator is counted independently, so percentages do not need to sum to 100%.
 # This is because participants were allowed to choose more than 1 category.
 
-race_table_data <- tibble(
-  Characteristic = "Race/Ethnicity",
+race_table_data <- tibble(Characteristic = "Race/Ethnicity",
   # Creating a small manual data frame where every row belongs to the "Race/Ethnicity" section of the final table.
 
-  Category = c(
-    "Non-Hispanic White",
+  Category = c("Non-Hispanic White",
     "Hispanic",
     "Black",
     "Other Racial Groups",
     "No Response"),
   # These are the row labels that will appear under Race/Ethnicity.
 
-  n = c(
-    sum(cbt_kff_joined_latent$NonHispWhite_Y_pool == 1, na.rm = TRUE),
+  n = c(sum(cbt_kff_joined_latent$NonHispWhite_Y_pool == 1, na.rm = TRUE),
     sum(cbt_kff_joined_latent$Hisp_Y_pool == 1, na.rm = TRUE),
     sum(cbt_kff_joined_latent$Black_Y_pool == 1, na.rm = TRUE),
     sum(cbt_kff_joined_latent$Other_Racial_Groups == 1, na.rm = TRUE),
-    sum(is.na(cbt_kff_joined_latent$NotList_Y_pool)))
+    sum(is.na(cbt_kff_joined_latent$NotList_Y_pool)))) %>%
   # For each indicator, counting how many people have value 1. Counting NAs as no response.
-) %>%
   mutate(percent = 100 * n / nrow(cbt_kff_joined_latent))
   # Calculating the race percentages using the FULL sample size as denominator, not the sum of race counts.
 
 
 # Now, we have to combine the main demographics data with the race data
-demo_table_data <- bind_rows(
-  demo_table_data,
-  race_table_data)
+demo_table_data <- bind_rows(demo_table_data, race_table_data)
 # Stacking the race rows underneath the rows from the main demographic table. Now the demo_table_data contains all necessary demographic sections.
 
 # Specifying which sections should be sorted by descending count; this variable will be used to specify this below.
@@ -361,8 +347,7 @@ sort_by_n <- c("Race/Ethnicity", "Region", "Resource Instability", "Sex/Gender")
 # These section names will be sorted so the largest n category appears first.
 
 # Applying the ordering rules: Some sections should be sorted by descending n. Others should keep a logical order defined manually.
-demo_table_data <- bind_rows(
-  demo_table_data %>%
+demo_table_data <- bind_rows(demo_table_data %>%
     filter(Characteristic %in% sort_by_n) %>%
     # Keeping only the sections that should be sorted by descending count.
 
@@ -379,8 +364,7 @@ demo_table_data <- bind_rows(
     filter(!Characteristic %in% sort_by_n) %>%
     # Now, only keeping sections that should NOT be sorted by n.
 
-    mutate(
-      order = case_when(
+    mutate(order = case_when(
         Characteristic == "Age Group" & Category == "7-12 years" ~ 1,
         Characteristic == "Age Group" & Category == "13+ years" ~ 2,
         Characteristic == "Age Group" & Category == "No response" ~ 3,
@@ -393,18 +377,14 @@ demo_table_data <- bind_rows(
         Characteristic == "Caregiver Education" & Category == "Completed College" ~ 2,
         Characteristic == "Caregiver Education" & Category == "Completed Graduate School" ~ 3,
         Characteristic == "Caregiver Education" & Category == "No response" ~ 4,
-
-        TRUE ~ 99))
+        TRUE ~ 99))) %>%
     # Manually assigning a display order for sections where I want a meaningful sequence instead of descending frequency.
-) %>%
-  mutate(
-    Category = paste0("\u00A0\u00A0\u00A0", Category),
+
+  mutate(Category = paste0("\u00A0\u00A0\u00A0", Category),
     # Adding leading non-breaking spaces to indent category labels under each heading. There might be a better way to do this, but this is what I got now.
-    `n (%)` = sprintf("%d (%.1f%%)", n, percent)
+    `n (%)` = sprintf("%d (%.1f%%)", n, percent)) %>%
     # Formatting count and percentage into a single display column.
-  ) %>%
-  arrange(
-    factor(Characteristic,
+  arrange(factor(Characteristic,
       levels = c(
         "Age Group",
         "Sex/Gender",
@@ -412,8 +392,7 @@ demo_table_data <- bind_rows(
         "Language",
         "Region",
         "Caregiver Education",        
-        "Resource Instability")),
-    order)
+        "Resource Instability")), order)
   # Arranging the table rows so the demographic sections appear in a cohesive order and within each section we will be using the previously defined row order.
 
 
@@ -425,14 +404,13 @@ demo_gt <- demo_table_data %>%
 
   gt(groupname_col = "Characteristic") %>%
   # Creating a gt table and using Characteristic as the row-group heading. This makes Age Group, Sex/Gender, etc. appear as grouped section headers.
-  cols_label(
-    Category = "",
+  cols_label(Category = "",
     `n (%)` = "n (%)") %>%
   # Setting the displayed column labels. Category column gets a blank header for a cleaner look.
   tab_header(
     title = md("**Table 1: Therapist-Led CBT Sample Demographics**")) %>%
   # Adding a table title and bolding it.
-  tab_source_note(source_note = md("*Note.* Participants could select multiple race/ethnicity categories, so race/ethnicity categories were counted independently. Percentages in this section may not sum to 100%.")) %>%
+  tab_source_note(source_note = md("*Note:* Participants could select multiple race/ethnicity categories, so race/ethnicity categories were counted independently. Percentages in this section may not sum to 100%.")) %>%
   # Adding the explanatory note under the table for the race/ethnicity variable design.
   opt_table_font(font = list("Times New Roman", "Times")) %>%
   # Setting two font option Times New Roman first, if not available trying Times.
@@ -448,8 +426,8 @@ demo_gt <- demo_table_data %>%
   # Centering the n (%) column.
   cols_width(
     Category ~ px(260),
-    `n (%)` ~ px(90)
-  ) %>%
+    `n (%)` ~ px(90)) %>%
+  # table size formatting
   tab_options(table.font.size = px(14),
     heading.title.font.size = px(16),
     row_group.font.size = px(14),
@@ -464,6 +442,9 @@ demo_gt <- demo_table_data %>%
 
 # Printing the final formatted table
 demo_gt
+
+# Saving as PNG
+gtsave(demo_gt, "demo_table.png")
 ```
 
 
@@ -599,6 +580,9 @@ desc_gt <- table_df %>%
 # Printing the final table
 desc_gt
 
+# Saving as PNG
+gtsave(desc_gt, "descriptive_stats.png")
+
 ```
 
 
@@ -698,7 +682,7 @@ row_order <- c("Intercept",
   "Baseline anxiety severity",
   "Externalizing behavior problems",
   "Attention behavior problems",
-  "ACEs total score",
+  "ACEs Total Score",
   "Caregiver complexity",
   "Caregiver accommodation",
   "Caregiver education",
@@ -722,7 +706,7 @@ results_table <- results_table %>%
   mutate(term = as.character(term))
 
 # Making gt table
-reg_gt <- results_table %>%
+reg_gt1 <- results_table %>%
   gt(rowname_col = "term") %>%
   tab_header(title = md("**Table 3: Predictor Model Results**")) %>% # title
   # Model headers for each part of the table
@@ -771,7 +755,10 @@ reg_gt <- results_table %>%
     table_body.border.bottom.width = px(1))
 
 # Displaying table
-reg_gt
+reg_gt1
+
+# Saving as PNG
+gtsave(reg_gt1, "predictor_models_results.png")
 
 ```
 
@@ -822,7 +809,7 @@ term_labels <- c("(Intercept)" = "Intercept",
   "baseline_anxiety" = "Baseline anxiety severity",
   "behavior_problems_ext" = "Externalizing behavior problems",
   "behavior_problems_att" = "Attention behavior problems",
-  "ACEQ_Tot_pool_B" = "ACEs total score",
+  "ACEQ_Tot_pool_B" = "ACEs Total Score",
   "caregiver_complexity" = "Caregiver complexity",
   "PABUover_C_B" = "Caregiver accommodation",
   "Educ3_C" = "Caregiver education",
@@ -914,7 +901,7 @@ results_table <- results_table %>%
 
 # Making the gt table
 
-reg_gt <- results_table %>%
+reg_gt2 <- results_table %>%
   gt(rowname_col = "term") %>%
   # Title of the table
   tab_header(title = md("**Table 4: Predicting Post-treatment Anxiety Severity**")) %>%
@@ -966,7 +953,10 @@ reg_gt <- results_table %>%
     table_body.border.bottom.width = px(1))
 
 # displaying the table
-reg_gt
+reg_gt2
+
+# Saving as PNG
+gtsave(reg_gt2, "outcome_anxiety_models.png")
 ```
 
 
